@@ -97,6 +97,7 @@ body::before {
    ========================================================================== */
 
 .app-bar {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -105,40 +106,178 @@ body::before {
   flex: none;
 }
 
-.app-bar__brand {
+/* Left cluster: floating window, scientific, calculator mode */
+.app-bar__group {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 2px;
   min-width: 0;
 }
 
-.app-bar__logo {
+/* Mode chip next to the scientific button */
+.mode-btn {
+  position: relative;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 11px;
-  color: var(--md-on-primary-container);
-  background: var(--md-primary-container);
+  gap: 4px;
+  height: 38px;
+  padding: 0 10px 0 14px;
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--md-on-surface);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  cursor: pointer;
   flex: none;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 120ms ease;
 }
 
-.app-bar__title {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 500;
-  letter-spacing: 0.15px;
+.mode-btn:hover {
+  background: rgba(202, 196, 208, 0.1);
+}
+
+.mode-btn:active {
+  transform: scale(0.97);
+}
+
+.mode-btn[aria-expanded="true"] {
+  background: var(--md-secondary-container);
+  border-color: transparent;
+  color: var(--md-on-secondary-container);
+}
+
+.mode-btn__label {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.app-bar__actions {
+/* --------------------------------------------------------------------------
+   Popup menus (mode picker + the three dot menu)
+   ------------------------------------------------------------------------ */
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  z-index: 25;
+  min-width: 208px;
+  max-width: min(82vw, 300px);
+  padding: 6px;
+  border-radius: 20px;
+  border: 1px solid var(--md-outline-variant);
+  background: var(--md-surface-container-high);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transform-origin: top left;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.menu[hidden] {
+  display: none;
+}
+
+.menu.is-open {
+  opacity: 1;
+  transform: none;
+}
+
+#mode-menu {
+  left: 0;
+}
+
+#app-menu {
+  right: 0;
+  min-width: 196px;
+  transform-origin: top right;
+}
+
+.menu__item {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 12px;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--md-on-surface);
+  font-family: inherit;
+  font-size: 14.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+
+.menu__item:hover {
+  background: rgba(202, 196, 208, 0.1);
+}
+
+.menu__item[aria-checked="true"] {
+  color: var(--md-primary);
+  font-weight: 500;
+}
+
+.menu__item.is-soon {
+  color: var(--md-outline);
+  cursor: default;
+}
+
+.menu__item.is-soon:hover {
+  background: transparent;
+}
+
+.menu__item-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
   flex: none;
+  color: var(--md-on-surface-variant);
+}
+
+.menu__check {
+  flex: none;
+  opacity: 0;
+  color: var(--md-primary);
+}
+
+.menu__item[aria-checked="true"] .menu__check {
+  opacity: 1;
+}
+
+.menu__tag {
+  flex: none;
+  font-size: 10.5px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(202, 196, 208, 0.12);
+}
+
+.menu__divider {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--md-outline-variant);
 }
 
 .icon-btn {
@@ -186,6 +325,16 @@ body::before {
   gap: clamp(4px, 1vh, 10px);
   padding: clamp(4px, 1.4vh, 12px) 4px 0;
   overflow: hidden;
+}
+
+/* Small brand label on the display, so the app bar stays icons only */
+.display__brand {
+  margin: 0 0 auto 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--md-outline);
 }
 
 .display__expression {
@@ -740,11 +889,148 @@ body::before {
 
 
 /* ==========================================================================
-   About and update sheet
+   Settings sheet (version + update check, about, privacy)
    ========================================================================== */
 
-.sheet--about .sheet__list {
+.sheet--settings .sheet__list {
   gap: 10px;
+}
+
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-page[hidden] {
+  display: none;
+}
+
+/* Version row: the installed version next to the Check for Update button ---- */
+
+.version-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.version-row__text {
+  min-width: 0;
+}
+
+.version-row__app {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.version-row__value {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--md-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+}
+
+.update-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* List rows: About CalcS and the privacy note ------------------------------ */
+
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 20px;
+  background: var(--md-surface-container-low);
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease, transform 120ms ease;
+}
+
+.list-item:hover {
+  background: var(--md-surface-container-high);
+}
+
+.list-item:active {
+  transform: scale(0.99);
+}
+
+.list-item__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 12px;
+  background: rgba(208, 188, 255, 0.12);
+  color: var(--md-primary);
+}
+
+.list-item__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.list-item__title {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.list-item__sub {
+  font-size: 12.5px;
+  color: var(--md-on-surface-variant);
+}
+
+.list-item__chevron {
+  flex: none;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--md-outline);
+}
+
+/* Long text pages ---------------------------------------------------------- */
+
+.prose-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid var(--md-outline-variant);
+  background: var(--md-surface-container-low);
+}
+
+.prose-card__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.prose-card p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--md-on-surface-variant);
+}
+
+.prose-card__link {
+  align-self: flex-start;
+  text-decoration: none;
+  display: inline-block;
 }
 
 .icon-btn__badge {
@@ -1060,10 +1346,6 @@ body::before {
 
 /* Short screens (small phones, landscape): tighten everything up */
 @media (max-height: 680px) {
-  .app-bar__title {
-    display: none;
-  }
-
   .btn {
     height: clamp(42px, 8.6dvh, 58px);
   }
@@ -1074,6 +1356,51 @@ body::before {
 
   .display__entry {
     font-size: clamp(38px, 12vw, 52px);
+  }
+}
+
+/* Floating window (Android picture in picture): only the essentials stay */
+@media (max-height: 420px) {
+  .display__brand {
+    display: none;
+  }
+
+  .app-bar {
+    min-height: 32px;
+  }
+
+  .icon-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .mode-btn {
+    height: 30px;
+    padding: 0 8px 0 10px;
+    font-size: 12px;
+  }
+
+  .btn {
+    height: clamp(30px, 13dvh, 46px);
+    font-size: clamp(15px, 4.4vw, 20px);
+  }
+
+  .btn--extra {
+    height: clamp(22px, 9dvh, 32px);
+    font-size: clamp(12px, 3.4vw, 15px);
+  }
+
+  .display__entry {
+    font-size: clamp(26px, 9vw, 40px);
+  }
+
+  .display__expression {
+    min-height: 14px;
+    font-size: 12px;
+  }
+
+  .preview {
+    padding: 4px 10px;
   }
 }
 

@@ -80,7 +80,7 @@ export async function canInstallPackages() {
   }
 }
 
-/** Opens the "install unknown apps" screen for Calcivo. */
+/** Opens the "install unknown apps" screen for CalcS. */
 export async function openInstallPermissionSettings() {
   if (!isAndroid()) return false;
   try {

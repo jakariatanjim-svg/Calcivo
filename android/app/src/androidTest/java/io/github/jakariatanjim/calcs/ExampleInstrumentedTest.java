@@ -1,4 +1,4 @@
-package io.github.jakariatanjim.calcivo;
+package io.github.jakariatanjim.calcs;
 
 import static org.junit.Assert.assertEquals;
 
@@ -19,6 +19,6 @@ public class ExampleInstrumentedTest {
     @Test
     public void useAppContext() {
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        assertEquals("io.github.jakariatanjim.calcivo", appContext.getPackageName());
+        assertEquals("io.github.jakariatanjim.calcs", appContext.getPackageName());
     }
 }

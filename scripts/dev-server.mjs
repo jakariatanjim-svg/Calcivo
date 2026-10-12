@@ -89,7 +89,7 @@ const server = createServer((request, response) => {
 await rebuild('initial');
 
 server.listen(port, host, () => {
-  console.log(`[dev] Calcivo web build on http://${host}:${port}`);
+  console.log(`[dev] CalcS web build on http://${host}:${port}`);
 });
 
 let timer = null;

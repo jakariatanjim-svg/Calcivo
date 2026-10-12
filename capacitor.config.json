@@ -1,6 +1,6 @@
 {
-  "appId": "io.github.jakariatanjim.calcivo",
-  "appName": "Calcivo",
+  "appId": "io.github.jakariatanjim.calcs",
+  "appName": "CalcS",
   "webDir": "www",
   "loggingBehavior": "none",
   "android": {

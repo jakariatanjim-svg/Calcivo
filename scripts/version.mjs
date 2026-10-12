@@ -1,5 +1,5 @@
 /**
- * Version arithmetic for Calcivo - file and CLI layer.
+ * Version arithmetic for CalcS - file and CLI layer.
  *
  * The canonical version lives in `version.json` at the root of the repository
  * and holds the version of the last build.

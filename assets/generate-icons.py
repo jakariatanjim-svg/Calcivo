@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Draws every icon and splash image used by Calcivo.
+"""Draws every icon and splash image used by CalcS.
 
     python3 assets/generate-icons.py
 

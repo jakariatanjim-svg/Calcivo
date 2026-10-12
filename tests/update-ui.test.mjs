@@ -20,19 +20,19 @@ const HASH = 'c'.repeat(64);
 
 const releasePayload = (tag = 'v1.4') => ({
   tag_name: tag,
-  name: `Calcivo ${tag.replace('v', '')}`,
-  html_url: `https://github.com/jakariatanjim-svg/test/releases/tag/${tag}`,
+  name: `CalcS ${tag.replace('v', '')}`,
+  html_url: `https://github.com/jakariatanjim-svg/Calcivo/releases/tag/${tag}`,
   published_at: '2026-10-12T09:30:00Z',
   body: '## New\n- faster start\n- fixed percent',
   assets: [
     {
-      name: 'Calcivo-latest.apk',
-      browser_download_url: 'https://example.com/Calcivo-latest.apk',
+      name: 'CalcS_1.4_release.apk',
+      browser_download_url: 'https://example.com/CalcS_1.4_release.apk',
       size: 4 * 1024 * 1024,
     },
     {
-      name: 'Calcivo-latest.apk.sha256',
-      browser_download_url: 'https://example.com/Calcivo-latest.apk.sha256',
+      name: 'CalcS_1.4_release.apk.sha256',
+      browser_download_url: 'https://example.com/CalcS_1.4_release.apk.sha256',
       size: 90,
     },
   ],
@@ -51,7 +51,7 @@ function createBridge(overrides = {}) {
     cancelDownload: async () => {
       calls.cancel += 1;
     },
-    fetchChecksum: async () => `${HASH}  Calcivo-latest.apk`,
+    fetchChecksum: async () => `${HASH}  CalcS_1.4_release.apk`,
     downloadApk: async ({ url, fileName, onProgress }) => {
       calls.download.push({ url, fileName });
       onProgress?.({ percent: 25, received: 1024 * 1024, total: 4 * 1024 * 1024 });
@@ -107,7 +107,7 @@ beforeEach(() => {
       featureList: el('feature-list'),
     },
     getVersion: () => '1.3',
-    getRepository: () => 'jakariatanjim-svg/test',
+    getRepository: () => 'jakariatanjim-svg/Calcivo',
     fetchImpl,
     bridge,
   });
@@ -131,7 +131,7 @@ test('the newest release reports that the app is up to date', async () => {
   updater = createUpdater({
     elements: { updateCard: el('update-card'), updateTitle: el('update-title'), updateStatus: el('update-status'), updatePrimary: el('update-primary'), updateSecondary: el('update-secondary'), updateProgress: el('update-progress') },
     getVersion: () => '1.3',
-    getRepository: () => 'jakariatanjim-svg/test',
+    getRepository: () => 'jakariatanjim-svg/Calcivo',
     fetchImpl,
     bridge,
   });
@@ -149,7 +149,7 @@ test('a network failure is reported without breaking the sheet', async () => {
   updater = createUpdater({
     elements: { updateCard: el('update-card'), updateTitle: el('update-title'), updateStatus: el('update-status'), updatePrimary: el('update-primary'), updateSecondary: el('update-secondary'), updateProgress: el('update-progress') },
     getVersion: () => '1.3',
-    getRepository: () => 'jakariatanjim-svg/test',
+    getRepository: () => 'jakariatanjim-svg/Calcivo',
     fetchImpl,
     bridge,
   });
@@ -164,8 +164,8 @@ test('the download runs through progress and verifies the checksum', async () =>
   await updater.download();
 
   assert.equal(bridge.calls.download.length, 1);
-  assert.equal(bridge.calls.download[0].url, 'https://example.com/Calcivo-latest.apk');
-  assert.equal(bridge.calls.download[0].fileName, 'Calcivo-latest.apk');
+  assert.equal(bridge.calls.download[0].url, 'https://example.com/CalcS_1.4_release.apk');
+  assert.equal(bridge.calls.download[0].fileName, 'CalcS_1.4_release.apk');
   assert.equal(updater.phase, 'ready');
   assert.equal(updater.state.download.verified, true);
   assert.match(el('update-status').textContent, /checksum matches/i);
@@ -194,7 +194,7 @@ test('progress is shown while the download is running', async () => {
       updateSecondary: el('update-secondary'),
     },
     getVersion: () => '1.3',
-    getRepository: () => 'jakariatanjim-svg/test',
+    getRepository: () => 'jakariatanjim-svg/Calcivo',
     fetchImpl,
     bridge: createBridge({
       downloadApk: async ({ fileName, onProgress }) => {
@@ -229,11 +229,11 @@ test('cancel returns to the update card', async () => {
 });
 
 test('a checksum mismatch stops the install', async () => {
-  const mismatchBridge = createBridge({ fetchChecksum: async () => `${'d'.repeat(64)}  Calcivo-latest.apk` });
+  const mismatchBridge = createBridge({ fetchChecksum: async () => `${'d'.repeat(64)}  CalcS_1.4_release.apk` });
   updater = createUpdater({
     elements: { updateCard: el('update-card'), updateTitle: el('update-title'), updateStatus: el('update-status'), updateProgress: el('update-progress'), progressBar: el('progress-bar'), updatePrimary: el('update-primary'), updateSecondary: el('update-secondary') },
     getVersion: () => '1.3',
-    getRepository: () => 'jakariatanjim-svg/test',
+    getRepository: () => 'jakariatanjim-svg/Calcivo',
     fetchImpl,
     bridge: mismatchBridge,
   });
@@ -251,7 +251,7 @@ test('installing hands the file to the Android installer', async () => {
   await updater.download();
   await updater.install();
 
-  assert.deepEqual(bridge.calls.install, ['Calcivo-latest.apk']);
+  assert.deepEqual(bridge.calls.install, ['CalcS_1.4_release.apk']);
   assert.equal(updater.phase, 'installing');
   assert.match(el('update-status').textContent, /installer is open/i);
 });
@@ -261,7 +261,7 @@ test('Android install permission is requested before installing', async () => {
   updater = createUpdater({
     elements: { updateCard: el('update-card'), updateTitle: el('update-title'), updateStatus: el('update-status'), updateProgress: el('update-progress'), progressBar: el('progress-bar'), updatePrimary: el('update-primary'), updateSecondary: el('update-secondary') },
     getVersion: () => '1.3',
-    getRepository: () => 'jakariatanjim-svg/test',
+    getRepository: () => 'jakariatanjim-svg/Calcivo',
     fetchImpl,
     bridge: permissionBridge,
   });
@@ -282,7 +282,7 @@ test('a browser cannot install, so the download button stays disabled', async ()
   updater = createUpdater({
     elements: { updateCard: el('update-card'), updateTitle: el('update-title'), updateStatus: el('update-status'), updatePrimary: el('update-primary'), updateSecondary: el('update-secondary'), updateProgress: el('update-progress') },
     getVersion: () => '1.3',
-    getRepository: () => 'jakariatanjim-svg/test',
+    getRepository: () => 'jakariatanjim-svg/Calcivo',
     fetchImpl,
     bridge: webBridge,
   });

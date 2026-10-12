@@ -1,7 +1,7 @@
 /**
  * Update channel.
  *
- * Calcivo is distributed through GitHub releases. This module talks to the
+ * CalcS is distributed through GitHub releases. This module talks to the
  * public GitHub API, compares the newest published release with the version
  * that is installed and reports back everything the UI needs to offer an
  * in-app update.
@@ -13,7 +13,7 @@
 
 import { compareVersions, formatVersion, isNewerVersion, parseVersion } from './version.js';
 
-export const DEFAULT_REPOSITORY = 'jakariatanjim-svg/test';
+export const DEFAULT_REPOSITORY = 'jakariatanjim-svg/Calcivo';
 export const GITHUB_API = 'https://api.github.com';
 
 /** Accepts "owner/repo", a full https url or a git remote and returns "owner/repo". */
@@ -29,15 +29,26 @@ export function normalizeRepository(input) {
   return '';
 }
 
-/** Picks the APK (and its checksum) that the app should install. */
+/**
+ * Picks the APK (and its checksum) that the app should install.
+ *
+ * A release carries exactly one APK and its name contains the version it was
+ * built from (`CalcS_1.4_release.apk`), so the asset that matches the tag wins.
+ * The other candidates are only there so an older release - or a hand made one
+ * - still resolves to something installable.
+ */
 export function findApkAssets(release) {
   const assets = Array.isArray(release?.assets) ? release.assets : [];
   const apks = assets.filter((asset) => /\.apk$/i.test(asset?.name || ''));
   if (apks.length === 0) return { apk: null, checksum: null };
 
+  const version = versionFromTag(release?.tag_name || release?.name || '');
+  const escaped = version ? version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
+
   const preferred =
-    apks.find((asset) => /-latest\.apk$/i.test(asset.name)) ||
-    apks.find((asset) => /release/i.test(asset.name)) ||
+    (escaped && apks.find((asset) => new RegExp(`[_-]${escaped}([_-]|\\.apk$)`, 'i').test(asset.name))) ||
+    apks.find((asset) => /[_-]release\.apk$/i.test(asset.name)) ||
+    apks.find((asset) => /\.apk$/i.test(asset.name) && !/-latest\.apk$/i.test(asset.name)) ||
     apks[0];
 
   const checksum = assets.find((asset) => asset.name === `${preferred.name}.sha256`) || null;

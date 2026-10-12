@@ -1,5 +1,5 @@
 /**
- * Controller for the "About and updates" sheet.
+ * Controller for the update card inside Settings.
  *
  * It owns the whole update flow: checking GitHub for a new release, downloading
  * the APK with live progress, verifying the published checksum and handing the
@@ -43,7 +43,7 @@ const ICONS = {
 
 const svg = (name) => `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${ICONS[name] || ''}</svg>`;
 
-/** Roadmap shown in the About sheet. */
+/** Roadmap shown on the About page inside Settings. */
 export const UPCOMING_FEATURES = [
   { icon: 'money', label: 'Currency and money calculators' },
   { icon: 'swap', label: 'Unit and measurement converter' },
@@ -248,7 +248,7 @@ export function createUpdater({
         setIcon('settings');
         title.textContent = 'Allow the installer';
         status.textContent =
-          'Android needs your permission before Calcivo can install an update. Open the settings screen, allow Calcivo to install unknown apps, then come back and tap install.';
+          'Android needs your permission before CalcS can install an update. Open the settings screen, allow CalcS to install unknown apps, then come back and tap install.';
         setProgress(null);
         setNotes('');
         setPrimary('Open settings', () => openSettings());
@@ -303,7 +303,7 @@ export function createUpdater({
         status.textContent = `Installed version ${version}. Tap check to look for a newer release.`;
         setProgress(null);
         setNotes('');
-        setPrimary('Check for updates', () => check({ silent: false }));
+        setPrimary('Check for Update', () => check({ silent: false }));
         setSecondary(null, null, { hidden: true });
         break;
     }

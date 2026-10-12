@@ -1,7 +1,7 @@
 /**
  * Version helpers shared by the app, the build scripts and the tests.
  *
- * Calcivo uses a compact two part version: MAJOR.MINOR. Every build increases
+ * CalcS uses a compact two part version: MAJOR.MINOR. Every build increases
  * the version by one step and digits roll over at nine, so the sequence runs
  * 1.0, 1.1, ... 1.9, 2.0, 2.1, ... Three part versions (1.2.3) are accepted as
  * well, in which case the last digit rolls over into the previous one.

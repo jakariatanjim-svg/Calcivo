@@ -14,9 +14,9 @@
   <meta name="format-detection" content="telephone=no" />
   <meta
     name="description"
-    content="Calcivo - a full screen calculator with a live result preview, history and in-app updates."
+    content="CalcS - a full screen calculator with a live result preview, history and in-app updates."
   />
-  <title>Calcivo</title>
+  <title>CalcS</title>
   <link rel="icon" href="icons/favicon.png" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <link rel="manifest" href="manifest.webmanifest" />
@@ -24,53 +24,140 @@
 </head>
 <body>
   <div class="app">
-    <!-- Top app bar -->
+    <!--
+      Top app bar, in the order the design asks for:
+        floating window | scientific | calculator mode            three dot menu
+      The three dot menu holds History and Settings; the version and the update
+      check live inside Settings.
+    -->
     <header class="app-bar">
-      <div class="app-bar__brand">
-        <span class="app-bar__logo" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"
-               stroke-linecap="round" stroke-linejoin="round">
-            <rect x="4" y="2.6" width="16" height="18.8" rx="4.4" />
-            <rect x="7.4" y="6" width="9.2" height="3.1" rx="1.3" fill="currentColor" stroke="none" />
-            <circle cx="8.6" cy="13" r="1.05" fill="currentColor" stroke="none" />
-            <circle cx="12" cy="13" r="1.05" fill="currentColor" stroke="none" />
-            <circle cx="15.4" cy="13" r="1.05" fill="currentColor" stroke="none" />
-            <circle cx="8.6" cy="17.4" r="1.05" fill="currentColor" stroke="none" />
-            <circle cx="12" cy="17.4" r="1.05" fill="currentColor" stroke="none" />
-            <circle cx="15.4" cy="17.4" r="1.05" fill="currentColor" stroke="none" />
+      <div class="app-bar__group">
+        <button
+          type="button"
+          class="icon-btn"
+          id="floating-btn"
+          aria-label="Open in a floating window"
+          title="Floating window"
+        >
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+            <path
+              d="M21 3v8h-2V6.41l-4.29 4.3-1.42-1.42L17.59 5H13V3h8zm-18 18v-8h2v4.59l4.29-4.3 1.42 1.42L6.41 19H11v2H3z"
+            />
           </svg>
-        </span>
-        <h1 class="app-bar__title">Calcivo</h1>
-      </div>
-      <div class="app-bar__actions">
+        </button>
+
         <button
           type="button"
           class="icon-btn"
           id="scientific-btn"
           aria-pressed="false"
-          aria-label="Toggle extra keys"
-          title="Extra keys"
+          aria-label="Scientific keys"
+          title="Scientific"
         >
           <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
             <path d="M18 4H6v2l6.5 6L6 18v2h12v-3h-2v1H10.31L14 13.19 10.31 8H16v1h2V4z" />
           </svg>
         </button>
-        <button type="button" class="icon-btn" id="history-btn" aria-label="Open history" title="History">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
-            <path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z" />
+
+        <button
+          type="button"
+          class="mode-btn"
+          id="mode-btn"
+          aria-haspopup="menu"
+          aria-expanded="false"
+          aria-label="Calculator mode"
+          title="Calculator mode"
+        >
+          <span class="mode-btn__label" id="mode-label">Standard</span>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+            <path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
           </svg>
         </button>
-        <button type="button" class="icon-btn" id="about-btn" aria-label="About and updates" title="About">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
-            <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+      </div>
+
+      <button
+        type="button"
+        class="icon-btn"
+        id="menu-btn"
+        aria-haspopup="menu"
+        aria-expanded="false"
+        aria-label="More options"
+        title="More"
+      >
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+          <path
+            d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
+          />
+        </svg>
+        <span class="icon-btn__badge" id="update-badge" hidden aria-hidden="true"></span>
+      </button>
+
+      <!-- Mode picker: the modes that exist today, the rest marked as coming -->
+      <div class="menu" id="mode-menu" role="menu" aria-label="Calculator mode" hidden>
+        <button
+          type="button"
+          class="menu__item"
+          role="menuitemradio"
+          aria-checked="true"
+          data-mode="standard"
+        >
+          <span class="menu__item-text">Standard</span>
+          <svg class="menu__check" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+            <path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
           </svg>
-          <span class="icon-btn__badge" id="update-badge" hidden aria-hidden="true"></span>
+        </button>
+        <button
+          type="button"
+          class="menu__item"
+          role="menuitemradio"
+          aria-checked="false"
+          data-mode="scientific"
+        >
+          <span class="menu__item-text">Scientific</span>
+          <svg class="menu__check" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+            <path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+          </svg>
+        </button>
+        <div class="menu__divider" role="separator"></div>
+        <button type="button" class="menu__item is-soon" role="menuitem" disabled>
+          <span class="menu__item-text">Currency</span><span class="menu__tag">Soon</span>
+        </button>
+        <button type="button" class="menu__item is-soon" role="menuitem" disabled>
+          <span class="menu__item-text">Unit converter</span><span class="menu__tag">Soon</span>
+        </button>
+        <button type="button" class="menu__item is-soon" role="menuitem" disabled>
+          <span class="menu__item-text">Graph</span><span class="menu__tag">Soon</span>
+        </button>
+      </div>
+
+      <!-- Three dot menu: History and Settings -->
+      <div class="menu" id="app-menu" role="menu" aria-label="More options" hidden>
+        <button type="button" class="menu__item" id="menu-history" role="menuitem">
+          <span class="menu__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path
+                d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"
+              />
+            </svg>
+          </span>
+          <span class="menu__item-text">History</span>
+        </button>
+        <button type="button" class="menu__item" id="menu-settings" role="menuitem">
+          <span class="menu__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path
+                d="M19.14 12.94a7.5 7.5 0 0 0 0-1.88l2.03-1.58-1.93-3.34-2.4.97a7.3 7.3 0 0 0-1.62-.94l-.36-2.55H10.6l-.36 2.55c-.58.24-1.12.55-1.62.94l-2.4-.97-1.93 3.34 2.03 1.58a7.5 7.5 0 0 0 0 1.88l-2.03 1.58 1.93 3.34 2.4-.97c.5.39 1.04.7 1.62.94l.36 2.55h4.26l.36-2.55c.58-.24 1.12-.55 1.62-.94l2.4.97 1.93-3.34-2.03-1.58zM12.73 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"
+              />
+            </svg>
+          </span>
+          <span class="menu__item-text">Settings</span>
         </button>
       </div>
     </header>
 
     <!-- Display -->
     <section class="display" id="display" aria-live="polite">
+      <p class="display__brand" id="brand-label">CalcS</p>
       <div class="display__expression" id="expression">&nbsp;</div>
 
       <button
@@ -89,7 +176,7 @@
       </div>
     </section>
 
-    <!-- Extra keys (collapsed by default) -->
+    <!-- Extra keys (collapsed by default, shown by the scientific mode) -->
     <section class="extra-keys" id="extra-keys" hidden aria-label="Extra keys">
       <button type="button" class="btn btn--extra" data-action="paren" data-value="(" data-key="(">(</button>
       <button type="button" class="btn btn--extra" data-action="paren" data-value=")" data-key=")">)</button>
@@ -160,13 +247,25 @@
     </footer>
   </aside>
 
-  <!-- About and updates bottom sheet -->
-  <div class="sheet-backdrop" id="about-backdrop" hidden></div>
-  <aside class="sheet sheet--about" id="about-sheet" aria-label="About Calcivo" aria-hidden="true">
-    <div class="sheet__handle" id="about-handle" aria-hidden="true"></div>
+  <!-- Settings bottom sheet: version + update check, about and the privacy note -->
+  <div class="sheet-backdrop" id="settings-backdrop" hidden></div>
+  <aside class="sheet sheet--settings" id="settings-sheet" aria-label="Settings" aria-hidden="true">
+    <div class="sheet__handle" id="settings-handle" aria-hidden="true"></div>
     <header class="sheet__header">
-      <h2 class="sheet__title">About</h2>
-      <button type="button" class="icon-btn" id="about-close" aria-label="Close about" title="Close">
+      <button
+        type="button"
+        class="icon-btn"
+        id="settings-back"
+        aria-label="Back to settings"
+        title="Back"
+        hidden
+      >
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+          <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+        </svg>
+      </button>
+      <h2 class="sheet__title" id="settings-title">Settings</h2>
+      <button type="button" class="icon-btn" id="settings-close" aria-label="Close settings" title="Close">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
           <path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
         </svg>
@@ -174,59 +273,111 @@
     </header>
 
     <div class="sheet__list">
-      <section class="brand-card">
-        <span class="brand-card__logo" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.7"
-               stroke-linecap="round" stroke-linejoin="round">
-            <rect x="4" y="2.6" width="16" height="18.8" rx="4.4" />
-            <rect x="7.4" y="6" width="9.2" height="3.1" rx="1.3" fill="currentColor" stroke="none" />
-            <circle cx="8.6" cy="13" r="1.05" fill="currentColor" stroke="none" />
-            <circle cx="12" cy="13" r="1.05" fill="currentColor" stroke="none" />
-            <circle cx="15.4" cy="13" r="1.05" fill="currentColor" stroke="none" />
-            <circle cx="8.6" cy="17.4" r="1.05" fill="currentColor" stroke="none" />
-            <circle cx="12" cy="17.4" r="1.05" fill="currentColor" stroke="none" />
-            <circle cx="15.4" cy="17.4" r="1.05" fill="currentColor" stroke="none" />
-          </svg>
-        </span>
-        <div class="brand-card__text">
-          <p class="brand-card__name">Calcivo</p>
-          <p class="brand-card__version">Version <span id="about-version">1.0</span></p>
-        </div>
-      </section>
-
-      <section class="update-card" id="update-card">
-        <header class="update-card__header">
-          <span class="update-card__icon" id="update-icon" aria-hidden="true"></span>
-          <div class="update-card__text">
-            <p class="update-card__title" id="update-title">Updates</p>
-            <p class="update-card__status" id="update-status">Tap check to look for a new version.</p>
+      <!-- Settings root -->
+      <section class="settings-page" id="settings-root">
+        <section class="update-card" id="update-card">
+          <div class="version-row">
+            <div class="version-row__text">
+              <p class="version-row__app" id="version-app">CalcS</p>
+              <p class="version-row__value">Version <span id="about-version">1.0</span></p>
+            </div>
+            <button type="button" class="filled-btn" id="update-primary">Check for Update</button>
           </div>
-        </header>
 
-        <div class="update-card__progress" id="update-progress" hidden>
-          <div class="progress" role="progressbar" aria-labelledby="update-status">
-            <span class="progress__bar" id="progress-bar"></span>
+          <div class="update-status">
+            <span class="update-card__icon" id="update-icon" aria-hidden="true"></span>
+            <div class="update-card__text">
+              <p class="update-card__title" id="update-title">Updates</p>
+              <p class="update-card__status" id="update-status">
+                Tap Check for Update to look for a newer version.
+              </p>
+            </div>
           </div>
-          <p class="update-card__meta" id="update-meta"></p>
-        </div>
 
-        <p class="update-card__notes" id="update-notes" hidden></p>
+          <!-- The space under the version row: update progress and size land here -->
+          <div class="update-card__progress" id="update-progress" hidden>
+            <div class="progress" role="progressbar" aria-labelledby="update-status">
+              <span class="progress__bar" id="progress-bar"></span>
+            </div>
+            <p class="update-card__meta" id="update-meta"></p>
+          </div>
 
-        <footer class="update-card__actions">
-          <button type="button" class="filled-btn" id="update-primary">Check for updates</button>
-          <button type="button" class="text-btn" id="update-secondary" hidden>Cancel</button>
-        </footer>
+          <p class="update-card__notes" id="update-notes" hidden></p>
+
+          <footer class="update-card__actions">
+            <button type="button" class="text-btn" id="update-secondary" hidden>Cancel</button>
+          </footer>
+        </section>
+
+        <button type="button" class="list-item" id="open-about">
+          <span class="list-item__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+            </svg>
+          </span>
+          <span class="list-item__text">
+            <span class="list-item__title">About CalcS</span>
+            <span class="list-item__sub">Open source, licence and the repository</span>
+          </span>
+          <span class="list-item__chevron" aria-hidden="true">&rsaquo;</span>
+        </button>
+
+        <button type="button" class="list-item" id="open-privacy">
+          <span class="list-item__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path d="M12 1 3 5v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V5l-9-4zm7 10c0 4.1-2.6 7.8-7 8.9V12H5V6.3l7-3.1V11h7v.01z" />
+            </svg>
+          </span>
+          <span class="list-item__text">
+            <span class="list-item__title">Privacy note</span>
+            <span class="list-item__sub">What the app does with your data</span>
+          </span>
+          <span class="list-item__chevron" aria-hidden="true">&rsaquo;</span>
+        </button>
       </section>
 
-      <section class="about-section">
-        <h3 class="about-section__title">New features coming soon</h3>
-        <ul class="feature-list" id="feature-list"></ul>
+      <!-- About page -->
+      <section class="settings-page" id="settings-about" hidden>
+        <article class="prose-card">
+          <h3 class="prose-card__title">About CalcS</h3>
+          <p>
+            CalcS is a small, open source calculator. It shows the answer while you type, keeps your
+            last results to hand and installs its own updates.
+          </p>
+          <p>
+            The whole project - source, every release and the issue tracker - lives on GitHub. Read
+            it, build it, fork it: the code is published under the MIT licence.
+          </p>
+          <p>
+            Built with Capacitor and a hand written expression engine. No ads, no accounts, no
+            tracking, and no third party analytics of any kind.
+          </p>
+          <a class="filled-btn prose-card__link" id="repo-link" href="https://github.com/" target="_blank" rel="noopener">
+            Open the repository
+          </a>
+        </article>
+
+        <section class="about-section">
+          <h3 class="about-section__title">New features coming soon</h3>
+          <ul class="feature-list" id="feature-list"></ul>
+        </section>
       </section>
 
-      <p class="about-note">
-        Calculate offline, always. Calcivo keeps your history on this device and only contacts GitHub when it
-        looks for an update.
-      </p>
+      <!-- Privacy page -->
+      <section class="settings-page" id="settings-privacy" hidden>
+        <article class="prose-card">
+          <h3 class="prose-card__title">Privacy note</h3>
+          <p>CalcS does not collect anything. There is no account, no analytics, no ads and no tracking.</p>
+          <p>
+            Your calculations and your history are stored on this phone only, and they are removed
+            with the app.
+          </p>
+          <p>
+            The one time the app goes online is when it checks GitHub for a newer version, and later
+            downloads it. Nothing about you is sent with that request.
+          </p>
+        </article>
+      </section>
     </div>
 
     <footer class="sheet__footer">

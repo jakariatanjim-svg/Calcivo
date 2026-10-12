@@ -1,8 +1,8 @@
 {
-  "name": "calcivo",
+  "name": "calcs",
   "version": "1.0.0",
   "private": true,
-  "description": "Calcivo - a full screen calculator for Android with in-app updates.",
+  "description": "CalcS - a full screen calculator for Android with in-app updates.",
   "type": "module",
   "license": "MIT",
   "scripts": {

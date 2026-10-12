@@ -139,6 +139,26 @@ export async function registerBackButton(onBack) {
   }
 }
 
+/**
+ * Version information about the APK that is installed on this phone.
+ * @returns {Promise<{version: string, build: string, name: string}|null>}
+ */
+export async function getAppInfo() {
+  if (!isNative()) return null;
+  try {
+    const module = await loadApp();
+    if (!module) return null;
+    const info = await module.App.getInfo();
+    return {
+      version: info?.version || '',
+      build: info?.build || '',
+      name: info?.name || '',
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Keeps the app state fresh when it comes back to the foreground. */
 export async function registerResume(handler) {
   if (!isNative()) return () => {};
