@@ -1,6 +1,6 @@
 <div align="center">
 
-# CalcS
+# CalcS NOTE: This is Test Project.
 
 **A full screen calculator for Android that shows the answer before you press equals.**
 
