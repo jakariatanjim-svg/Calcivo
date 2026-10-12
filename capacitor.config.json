@@ -1,0 +1,15 @@
+{
+  "appId": "io.github.jakariatanjim.calcivo",
+  "appName": "Calcivo",
+  "webDir": "www",
+  "loggingBehavior": "none",
+  "android": {
+    "backgroundColor": "#141218",
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false,
+    "adjustMarginsForEdgeToEdge": "disable"
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

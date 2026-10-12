@@ -1,0 +1,349 @@
+name: Build APK
+
+# Manual runs:  Actions ▸ Build APK ▸ Run workflow
+#
+# Every run:
+#   1. bumps the version (1.0 -> 1.1 -> ... -> 1.9 -> 2.0) from version.json
+#   2. builds the web bundle, syncs it into the Android project and builds the APK
+#   3. tags that build v<version>, refreshes the `latest` tag
+#   4. creates a release titled "Calcivo <version>" with the APK
+#      inside, tagged as the latest release so in-app updates can find it
+#   5. commits the new version back to the branch it was run from
+#
+# Uncomment the push trigger below to also build on every push to main.
+on:
+  workflow_dispatch:
+    inputs:
+      variant:
+        description: "APK variant"
+        type: choice
+        options:
+          - debug
+          - release
+        default: debug
+  # push:
+  #   branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "22"
+  JAVA_VERSION: "21"
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      title: ${{ steps.version.outputs.title }}
+      human: ${{ steps.version.outputs.human }}
+      apk_name: ${{ steps.version.outputs.apk_name }}
+      variant: ${{ steps.version.outputs.variant }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Determine the next version
+        id: version
+        env:
+          VARIANT: ${{ inputs.variant || 'debug' }}
+        run: |
+          set -euo pipefail
+
+          # version.json holds the last released version; continue one step above
+          # the highest version found there or in the release tags.
+          VERSION="$(node scripts/version.mjs next --from-tags --write)"
+          VERSION_CODE="$(node scripts/version.mjs code "${VERSION}")"
+          TAG="v${VERSION}"
+          HUMAN="$(TZ="${BUILD_TIMEZONE:-Asia/Dhaka}" date +'%d %b %Y, %H:%M %Z')"
+          ISO="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+
+          {
+            echo "version=${VERSION}"
+            echo "version_code=${VERSION_CODE}"
+            echo "tag=${TAG}"
+            echo "human=${HUMAN}"
+            echo "iso=${ISO}"
+            echo "short_sha=${SHORT_SHA}"
+            echo "variant=${VARIANT}"
+            echo "title=Calcivo ${VERSION}"
+            echo "apk_name=Calcivo_${VERSION}_${VARIANT}.apk"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Calcivo ${VERSION}"
+            echo ""
+            echo "| field | value |"
+            echo "| --- | --- |"
+            echo "| version | \`${VERSION}\` |"
+            echo "| version code | \`${VERSION_CODE}\` |"
+            echo "| tag | \`${TAG}\` |"
+            echo "| variant | \`${VARIANT}\` |"
+            echo "| commit | \`${SHORT_SHA}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          cat version.json
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
+
+      - name: Set up Android SDK
+        # v3 installs the legacy "tools" SDK package by default. Google removed
+        # that package from the SDK repository, so sdkmanager exits 1 and the
+        # job dies before Gradle ever runs. v4 no longer installs it.
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android SDK packages
+        run: sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      # Android only installs an update when it is signed with the same key as
+      # the installed app. The repository secrets are the recommended way; when
+      # they are missing the workflow keeps one generated key around so
+      # consecutive builds stay compatible with each other.
+      - name: Restore the CI signing key
+        id: ci_keystore
+        uses: actions/cache@v4
+        with:
+          path: .keystore/ci.jks
+          key: calcivo-ci-keystore-v1
+
+      - name: Prepare signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p .keystore
+
+          if [ -n "${KEYSTORE_BASE64:-}" ]; then
+            echo "Using the release keystore from the repository secrets"
+            echo "${KEYSTORE_BASE64}" | base64 -d > android/app/release.keystore
+            {
+              echo "ANDROID_KEYSTORE_PATH=release.keystore"
+              echo "ANDROID_KEYSTORE_PASSWORD=${KEYSTORE_PASSWORD}"
+              echo "ANDROID_KEY_ALIAS=${KEY_ALIAS}"
+              echo "ANDROID_KEY_PASSWORD=${KEY_PASSWORD}"
+            } >> "$GITHUB_ENV"
+          else
+            if [ ! -f .keystore/ci.jks ]; then
+              echo "Creating a CI signing key (add the ANDROID_KEYSTORE_BASE64 secret to use your own)"
+              keytool -genkeypair -v \
+                -keystore .keystore/ci.jks \
+                -storepass calcivo-ci -keypass calcivo-ci -alias calcivo \
+                -keyalg RSA -keysize 2048 -validity 10000 \
+                -dname "CN=Calcivo CI, OU=Build, O=Calcivo, L=Dhaka, C=BD"
+            fi
+            cp .keystore/ci.jks android/app/ci.jks
+            {
+              echo "ANDROID_KEYSTORE_PATH=ci.jks"
+              echo "ANDROID_KEYSTORE_PASSWORD=calcivo-ci"
+              echo "ANDROID_KEY_ALIAS=calcivo"
+              echo "ANDROID_KEY_PASSWORD=calcivo-ci"
+            } >> "$GITHUB_ENV"
+          fi
+
+      - name: Run tests
+        env:
+          BUILD_VERSION: ${{ steps.version.outputs.version }}
+          BUILD_VARIANT: ${{ steps.version.outputs.variant }}
+          BUILD_COMMIT: ${{ steps.version.outputs.short_sha }}
+          BUILD_TIME: ${{ steps.version.outputs.iso }}
+        run: npm test
+
+      - name: Sync web build into the Android project
+        env:
+          BUILD_VERSION: ${{ steps.version.outputs.version }}
+          BUILD_VARIANT: ${{ steps.version.outputs.variant }}
+          BUILD_COMMIT: ${{ steps.version.outputs.short_sha }}
+          BUILD_TIME: ${{ steps.version.outputs.iso }}
+        run: |
+          npm run build:web
+          npx cap sync android
+
+      - name: Build APK
+        env:
+          VARIANT: ${{ steps.version.outputs.variant }}
+          VERSION_NAME: ${{ steps.version.outputs.version }}
+          VERSION_CODE: ${{ steps.version.outputs.version_code }}
+        run: |
+          set -euo pipefail
+          cd android
+          TASK="assemble$(echo "${VARIANT:0:1}" | tr '[:lower:]' '[:upper:]')${VARIANT:1}"
+          ./gradlew --no-daemon ":app:${TASK}" \
+            -PappVersionName="${VERSION_NAME}" \
+            -PappVersionCode="${VERSION_CODE}"
+
+      - name: Collect APK
+        env:
+          VARIANT: ${{ steps.version.outputs.variant }}
+          APK_NAME: ${{ steps.version.outputs.apk_name }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp "android/app/build/outputs/apk/${VARIANT}/app-${VARIANT}.apk" "dist/${APK_NAME}"
+          cd dist
+          sha256sum "${APK_NAME}" > "${APK_NAME}.sha256"
+          echo "${VERSION}" > version.txt
+          ls -lh
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.version.outputs.apk_name }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*.apk"
+          path: dist
+          merge-multiple: true
+
+      - name: Prepare release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.build.outputs.tag }}
+          APK_NAME: ${{ needs.build.outputs.apk_name }}
+        run: |
+          set -euo pipefail
+          ls -lh dist
+
+          # Stable asset name used by the in-app updater and by this link:
+          # /releases/latest/download/Calcivo-latest.apk
+          cp "dist/${APK_NAME}" "dist/Calcivo-latest.apk"
+          # The app verifies its download against this checksum.
+          (cd dist && sha256sum "Calcivo-latest.apk" > "Calcivo-latest.apk.sha256")
+
+          # Make a re-run for the same version safe.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release ${TAG} already exists - replacing it"
+            gh release delete "$TAG" --yes --cleanup-tag
+          fi
+          git push origin ":refs/tags/${TAG}" >/dev/null 2>&1 || true
+
+      - name: Write release notes
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+          TAG: ${{ needs.build.outputs.tag }}
+          HUMAN: ${{ needs.build.outputs.human }}
+          VARIANT: ${{ needs.build.outputs.variant }}
+          APK_NAME: ${{ needs.build.outputs.apk_name }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Calcivo ${VERSION}"
+            echo ""
+            echo "Built ${HUMAN} · \`${VARIANT}\` · commit \`${GITHUB_SHA:0:7}\`"
+            echo ""
+            echo "### Download"
+            echo ""
+            echo "- [\`${APK_NAME}\`](https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${APK_NAME}) — this build"
+            echo "- [\`Calcivo-latest.apk\`](https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/Calcivo-latest.apk) — always the newest build"
+            echo ""
+            echo "### Install"
+            echo ""
+            echo "1. Download the APK on your Android phone."
+            echo "2. Allow installing apps from this source if Android asks."
+            echo "3. Open the file and install."
+            echo ""
+            echo "Already using Calcivo? Open **About ▸ Check for updates** inside the app: it downloads this build and opens the installer for you."
+            echo ""
+            echo "### Changes"
+            echo ""
+            PREVIOUS_TAG="$(git tag --list 'v*' --sort=-v:refname | grep -v "^${TAG}$" | head -n 1 || true)"
+            if [ -n "${PREVIOUS_TAG}" ]; then
+              echo "Since \`${PREVIOUS_TAG}\`:"
+              echo ""
+              git log --pretty='- %s (%h)' "${PREVIOUS_TAG}..HEAD" | head -n 25
+            else
+              git log --pretty='- %s (%h)' -n 15
+            fi
+          } > release-notes.md
+          cat release-notes.md
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.build.outputs.tag }}
+          TITLE: ${{ needs.build.outputs.title }}
+        run: |
+          set -euo pipefail
+          gh release create "$TAG" dist/*.apk dist/*.sha256 \
+            --target "$GITHUB_SHA" \
+            --title "$TITLE" \
+            --notes-file release-notes.md \
+            --latest
+
+      - name: Refresh the latest tag
+        env:
+          TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f -a latest -m "Latest build: ${TAG}"
+          git push --force origin refs/tags/latest
+
+      - name: Commit the new version
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          CURRENT="$(node -e "console.log(require('./version.json').version)")"
+          if [ "$CURRENT" = "${VERSION}" ]; then
+            echo "version.json is already ${VERSION} - nothing to commit"
+            exit 0
+          fi
+
+          node -e "
+            const fs = require('fs');
+            const file = 'version.json';
+            const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+            data.version = '${VERSION}';
+            fs.writeFileSync(file, JSON.stringify(data, null, 2) + '\n');
+          "
+
+          git add version.json
+          git commit -m "Release Calcivo ${VERSION}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

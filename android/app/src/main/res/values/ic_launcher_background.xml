@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fallback colour for launchers without adaptive icon support. -->
+    <color name="ic_launcher_background">#4322C9</color>
+</resources>

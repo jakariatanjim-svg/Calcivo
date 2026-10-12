@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+  />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#141218" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta
+    name="description"
+    content="Calcivo - a full screen calculator with a live result preview, history and in-app updates."
+  />
+  <title>Calcivo</title>
+  <link rel="icon" href="icons/favicon.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- Top app bar -->
+    <header class="app-bar">
+      <div class="app-bar__brand">
+        <span class="app-bar__logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"
+               stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="2.6" width="16" height="18.8" rx="4.4" />
+            <rect x="7.4" y="6" width="9.2" height="3.1" rx="1.3" fill="currentColor" stroke="none" />
+            <circle cx="8.6" cy="13" r="1.05" fill="currentColor" stroke="none" />
+            <circle cx="12" cy="13" r="1.05" fill="currentColor" stroke="none" />
+            <circle cx="15.4" cy="13" r="1.05" fill="currentColor" stroke="none" />
+            <circle cx="8.6" cy="17.4" r="1.05" fill="currentColor" stroke="none" />
+            <circle cx="12" cy="17.4" r="1.05" fill="currentColor" stroke="none" />
+            <circle cx="15.4" cy="17.4" r="1.05" fill="currentColor" stroke="none" />
+          </svg>
+        </span>
+        <h1 class="app-bar__title">Calcivo</h1>
+      </div>
+      <div class="app-bar__actions">
+        <button
+          type="button"
+          class="icon-btn"
+          id="scientific-btn"
+          aria-pressed="false"
+          aria-label="Toggle extra keys"
+          title="Extra keys"
+        >
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+            <path d="M18 4H6v2l6.5 6L6 18v2h12v-3h-2v1H10.31L14 13.19 10.31 8H16v1h2V4z" />
+          </svg>
+        </button>
+        <button type="button" class="icon-btn" id="history-btn" aria-label="Open history" title="History">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+            <path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z" />
+          </svg>
+        </button>
+        <button type="button" class="icon-btn" id="about-btn" aria-label="About and updates" title="About">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+            <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+          </svg>
+          <span class="icon-btn__badge" id="update-badge" hidden aria-hidden="true"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Display -->
+    <section class="display" id="display" aria-live="polite">
+      <div class="display__expression" id="expression">&nbsp;</div>
+
+      <button
+        type="button"
+        class="display__entry"
+        id="entry"
+        title="Long press to copy"
+        aria-label="Current value, long press to copy"
+      >0</button>
+
+      <!-- Live preview: shows the result before equals is pressed -->
+      <div class="preview" id="preview" hidden>
+        <span class="preview__expression" id="preview-expression"></span>
+        <span class="preview__label" id="preview-label">=</span>
+        <span class="preview__value" id="preview-value"></span>
+      </div>
+    </section>
+
+    <!-- Extra keys (collapsed by default) -->
+    <section class="extra-keys" id="extra-keys" hidden aria-label="Extra keys">
+      <button type="button" class="btn btn--extra" data-action="paren" data-value="(" data-key="(">(</button>
+      <button type="button" class="btn btn--extra" data-action="paren" data-value=")" data-key=")">)</button>
+      <button type="button" class="btn btn--extra" data-action="sqrt" data-key="r" aria-label="Square root">&radic;</button>
+      <button type="button" class="btn btn--extra" data-action="square" data-key="q" aria-label="Square">x&sup2;</button>
+      <button type="button" class="btn btn--extra" data-action="reciprocal" data-key="i" aria-label="Reciprocal">1/x</button>
+      <button type="button" class="btn btn--extra" data-action="constant" data-value="pi" data-key="p" aria-label="Pi">&pi;</button>
+    </section>
+
+    <!-- Keypad -->
+    <section class="keypad" id="keypad" aria-label="Calculator keypad">
+      <button type="button" class="btn btn--util" data-action="clear" data-key="Escape">AC</button>
+      <button
+        type="button"
+        class="btn btn--util"
+        data-action="backspace"
+        data-key="Backspace"
+        aria-label="Backspace"
+      >
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+          <path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-3 12.59L17.59 17 14 13.41 10.41 17 9 15.59 12.59 12 9 8.41 10.41 7 14 10.59 17.59 7 19 8.41 15.41 12 19 15.59z" />
+        </svg>
+      </button>
+      <button type="button" class="btn btn--util" data-action="percent" data-key="%">%</button>
+      <button type="button" class="btn btn--op" data-action="operator" data-value="/" data-key="/" aria-label="Divide">&divide;</button>
+
+      <button type="button" class="btn btn--num" data-action="digit" data-value="7" data-key="7">7</button>
+      <button type="button" class="btn btn--num" data-action="digit" data-value="8" data-key="8">8</button>
+      <button type="button" class="btn btn--num" data-action="digit" data-value="9" data-key="9">9</button>
+      <button type="button" class="btn btn--op" data-action="operator" data-value="*" data-key="*" aria-label="Multiply">&times;</button>
+
+      <button type="button" class="btn btn--num" data-action="digit" data-value="4" data-key="4">4</button>
+      <button type="button" class="btn btn--num" data-action="digit" data-value="5" data-key="5">5</button>
+      <button type="button" class="btn btn--num" data-action="digit" data-value="6" data-key="6">6</button>
+      <button type="button" class="btn btn--op" data-action="operator" data-value="-" data-key="-" aria-label="Subtract">&minus;</button>
+
+      <button type="button" class="btn btn--num" data-action="digit" data-value="1" data-key="1">1</button>
+      <button type="button" class="btn btn--num" data-action="digit" data-value="2" data-key="2">2</button>
+      <button type="button" class="btn btn--num" data-action="digit" data-value="3" data-key="3">3</button>
+      <button type="button" class="btn btn--op" data-action="operator" data-value="+" data-key="+" aria-label="Add">+</button>
+
+      <button type="button" class="btn btn--num" data-action="sign" data-key="n" aria-label="Toggle sign">+/&minus;</button>
+      <button type="button" class="btn btn--num" data-action="digit" data-value="0" data-key="0">0</button>
+      <button type="button" class="btn btn--num" data-action="decimal" data-value="." data-key=".">.</button>
+      <button type="button" class="btn btn--equals" data-action="equals" data-key="Enter" aria-label="Equals">=</button>
+    </section>
+  </div>
+
+  <!-- Snackbar -->
+  <div class="snackbar" id="snackbar" role="status" aria-live="polite" hidden></div>
+
+  <!-- History bottom sheet -->
+  <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
+  <aside class="sheet" id="history-sheet" aria-label="Calculation history" aria-hidden="true">
+    <div class="sheet__handle" id="sheet-handle" aria-hidden="true"></div>
+    <header class="sheet__header">
+      <h2 class="sheet__title">History</h2>
+      <button type="button" class="text-btn" id="history-clear">Clear</button>
+      <button type="button" class="icon-btn" id="history-close" aria-label="Close history" title="Close">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+          <path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+        </svg>
+      </button>
+    </header>
+    <div class="sheet__list" id="history-list"></div>
+    <footer class="sheet__footer">
+      <span>Results are stored on this device only</span>
+    </footer>
+  </aside>
+
+  <!-- About and updates bottom sheet -->
+  <div class="sheet-backdrop" id="about-backdrop" hidden></div>
+  <aside class="sheet sheet--about" id="about-sheet" aria-label="About Calcivo" aria-hidden="true">
+    <div class="sheet__handle" id="about-handle" aria-hidden="true"></div>
+    <header class="sheet__header">
+      <h2 class="sheet__title">About</h2>
+      <button type="button" class="icon-btn" id="about-close" aria-label="Close about" title="Close">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+          <path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+        </svg>
+      </button>
+    </header>
+
+    <div class="sheet__list">
+      <section class="brand-card">
+        <span class="brand-card__logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.7"
+               stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="2.6" width="16" height="18.8" rx="4.4" />
+            <rect x="7.4" y="6" width="9.2" height="3.1" rx="1.3" fill="currentColor" stroke="none" />
+            <circle cx="8.6" cy="13" r="1.05" fill="currentColor" stroke="none" />
+            <circle cx="12" cy="13" r="1.05" fill="currentColor" stroke="none" />
+            <circle cx="15.4" cy="13" r="1.05" fill="currentColor" stroke="none" />
+            <circle cx="8.6" cy="17.4" r="1.05" fill="currentColor" stroke="none" />
+            <circle cx="12" cy="17.4" r="1.05" fill="currentColor" stroke="none" />
+            <circle cx="15.4" cy="17.4" r="1.05" fill="currentColor" stroke="none" />
+          </svg>
+        </span>
+        <div class="brand-card__text">
+          <p class="brand-card__name">Calcivo</p>
+          <p class="brand-card__version">Version <span id="about-version">1.0</span></p>
+        </div>
+      </section>
+
+      <section class="update-card" id="update-card">
+        <header class="update-card__header">
+          <span class="update-card__icon" id="update-icon" aria-hidden="true"></span>
+          <div class="update-card__text">
+            <p class="update-card__title" id="update-title">Updates</p>
+            <p class="update-card__status" id="update-status">Tap check to look for a new version.</p>
+          </div>
+        </header>
+
+        <div class="update-card__progress" id="update-progress" hidden>
+          <div class="progress" role="progressbar" aria-labelledby="update-status">
+            <span class="progress__bar" id="progress-bar"></span>
+          </div>
+          <p class="update-card__meta" id="update-meta"></p>
+        </div>
+
+        <p class="update-card__notes" id="update-notes" hidden></p>
+
+        <footer class="update-card__actions">
+          <button type="button" class="filled-btn" id="update-primary">Check for updates</button>
+          <button type="button" class="text-btn" id="update-secondary" hidden>Cancel</button>
+        </footer>
+      </section>
+
+      <section class="about-section">
+        <h3 class="about-section__title">New features coming soon</h3>
+        <ul class="feature-list" id="feature-list"></ul>
+      </section>
+
+      <p class="about-note">
+        Calculate offline, always. Calcivo keeps your history on this device and only contacts GitHub when it
+        looks for an update.
+      </p>
+    </div>
+
+    <footer class="sheet__footer">
+      <span id="build-label">build</span>
+    </footer>
+  </aside>
+
+  <script src="app.js"></script>
+</body>
+</html>
