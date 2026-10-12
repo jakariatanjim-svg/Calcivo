@@ -31,18 +31,24 @@
       check live inside Settings.
     -->
     <header class="app-bar">
+      <!-- Far left: hand the app to the floating window -->
+      <button
+        type="button"
+        class="icon-btn"
+        id="floating-btn"
+        aria-label="Open in a floating window"
+        title="Floating window"
+      >
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+          <path d="M21 3v8h-2V6.41l-4.29 4.3-1.42-1.42L17.59 5H13V3h8zm-18 18v-8h2v4.59l4.29-4.3 1.42 1.42L6.41 19H11v2H3z" />
+        </svg>
+      </button>
+
       <div class="app-bar__group">
-        <button
-          type="button"
-          class="icon-btn"
-          id="floating-btn"
-          aria-label="Open in a floating window"
-          title="Floating window"
-        >
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
-            <path
-              d="M21 3v8h-2V6.41l-4.29 4.3-1.42-1.42L17.59 5H13V3h8zm-18 18v-8h2v4.59l4.29-4.3 1.42 1.42L6.41 19H11v2H3z"
-            />
+        <button type="button" class="icon-btn" id="sign-btn" aria-label="Toggle sign" title="Plus minus">
+          <svg viewBox="0 0 24 24" width="21" height="21" fill="currentColor" aria-hidden="true">
+            <path d="M5 11h6V5h2v6h6v2h-6v6h-2v-6H5v-2z" />
+            <path d="M15 19h6v2h-6z" />
           </svg>
         </button>
 
@@ -61,72 +67,34 @@
 
         <button
           type="button"
-          class="mode-btn"
-          id="mode-btn"
-          aria-haspopup="menu"
-          aria-expanded="false"
+          class="icon-btn"
+          id="modes-btn"
+          aria-haspopup="dialog"
           aria-label="Calculator mode"
           title="Calculator mode"
         >
-          <span class="mode-btn__label" id="mode-label">Standard</span>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
-            <path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+            <path
+              d="M4 3h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm10 0h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM4 13h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1zm10 0h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1z"
+            />
           </svg>
         </button>
-      </div>
 
-      <button
-        type="button"
-        class="icon-btn"
-        id="menu-btn"
-        aria-haspopup="menu"
-        aria-expanded="false"
-        aria-label="More options"
-        title="More"
-      >
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
-          <path
-            d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
-          />
-        </svg>
-        <span class="icon-btn__badge" id="update-badge" hidden aria-hidden="true"></span>
-      </button>
-
-      <!-- Mode picker: the modes that exist today, the rest marked as coming -->
-      <div class="menu" id="mode-menu" role="menu" aria-label="Calculator mode" hidden>
         <button
           type="button"
-          class="menu__item"
-          role="menuitemradio"
-          aria-checked="true"
-          data-mode="standard"
+          class="icon-btn"
+          id="menu-btn"
+          aria-haspopup="menu"
+          aria-expanded="false"
+          aria-label="More options"
+          title="More"
         >
-          <span class="menu__item-text">Standard</span>
-          <svg class="menu__check" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
-            <path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+            <path
+              d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
+            />
           </svg>
-        </button>
-        <button
-          type="button"
-          class="menu__item"
-          role="menuitemradio"
-          aria-checked="false"
-          data-mode="scientific"
-        >
-          <span class="menu__item-text">Scientific</span>
-          <svg class="menu__check" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
-            <path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-          </svg>
-        </button>
-        <div class="menu__divider" role="separator"></div>
-        <button type="button" class="menu__item is-soon" role="menuitem" disabled>
-          <span class="menu__item-text">Currency</span><span class="menu__tag">Soon</span>
-        </button>
-        <button type="button" class="menu__item is-soon" role="menuitem" disabled>
-          <span class="menu__item-text">Unit converter</span><span class="menu__tag">Soon</span>
-        </button>
-        <button type="button" class="menu__item is-soon" role="menuitem" disabled>
-          <span class="menu__item-text">Graph</span><span class="menu__tag">Soon</span>
+          <span class="icon-btn__badge" id="update-badge" hidden aria-hidden="true"></span>
         </button>
       </div>
 
@@ -142,6 +110,7 @@
           </span>
           <span class="menu__item-text">History</span>
         </button>
+        <div class="menu__divider" role="separator"></div>
         <button type="button" class="menu__item" id="menu-settings" role="menuitem">
           <span class="menu__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
@@ -155,23 +124,26 @@
       </div>
     </header>
 
-    <!-- Display -->
+    <!-- Display: the whole expression stays big, the answer appears under it -->
     <section class="display" id="display" aria-live="polite">
-      <p class="display__brand" id="brand-label">CalcS</p>
-      <div class="display__expression" id="expression">&nbsp;</div>
+      <div class="display__top">
+        <p class="display__brand" id="brand-label">CalcS</p>
+        <div class="display__expression" id="expression"></div>
+      </div>
 
-      <button
-        type="button"
-        class="display__entry"
-        id="entry"
-        title="Long press to copy"
-        aria-label="Current value, long press to copy"
-      >0</button>
+      <div class="display__line">
+        <button
+          type="button"
+          class="display__entry"
+          id="entry"
+          title="Long press to copy"
+          aria-label="Expression, long press to copy the value"
+        >0</button>
+        <span class="display__caret" id="caret" aria-hidden="true" hidden></span>
+      </div>
 
-      <!-- Live preview: shows the result before equals is pressed -->
+      <!-- Live preview: the running answer, shown before equals is pressed -->
       <div class="preview" id="preview" hidden>
-        <span class="preview__expression" id="preview-expression"></span>
-        <span class="preview__label" id="preview-label">=</span>
         <span class="preview__value" id="preview-value"></span>
       </div>
     </section>
@@ -189,6 +161,7 @@
     <!-- Keypad -->
     <section class="keypad" id="keypad" aria-label="Calculator keypad">
       <button type="button" class="btn btn--util" data-action="clear" data-key="Escape">AC</button>
+      <button type="button" class="btn btn--util" data-action="percent" data-key="%">%</button>
       <button
         type="button"
         class="btn btn--util"
@@ -200,7 +173,6 @@
           <path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-3 12.59L17.59 17 14 13.41 10.41 17 9 15.59 12.59 12 9 8.41 10.41 7 14 10.59 17.59 7 19 8.41 15.41 12 19 15.59z" />
         </svg>
       </button>
-      <button type="button" class="btn btn--util" data-action="percent" data-key="%">%</button>
       <button type="button" class="btn btn--op" data-action="operator" data-value="/" data-key="/" aria-label="Divide">&divide;</button>
 
       <button type="button" class="btn btn--num" data-action="digit" data-value="7" data-key="7">7</button>
@@ -218,7 +190,7 @@
       <button type="button" class="btn btn--num" data-action="digit" data-value="3" data-key="3">3</button>
       <button type="button" class="btn btn--op" data-action="operator" data-value="+" data-key="+" aria-label="Add">+</button>
 
-      <button type="button" class="btn btn--num" data-action="sign" data-key="n" aria-label="Toggle sign">+/&minus;</button>
+      <button type="button" class="btn btn--num" data-action="double-zero" aria-label="Double zero">00</button>
       <button type="button" class="btn btn--num" data-action="digit" data-value="0" data-key="0">0</button>
       <button type="button" class="btn btn--num" data-action="decimal" data-value="." data-key=".">.</button>
       <button type="button" class="btn btn--equals" data-action="equals" data-key="Enter" aria-label="Equals">=</button>
@@ -245,6 +217,81 @@
     <footer class="sheet__footer">
       <span>Results are stored on this device only</span>
     </footer>
+  </aside>
+
+  <!-- Mode picker: the tiles the mode button in the app bar opens -->
+  <div class="sheet-backdrop" id="modes-backdrop" hidden></div>
+  <aside class="sheet sheet--modes" id="modes-sheet" aria-label="Calculator mode" aria-hidden="true">
+    <div class="sheet__handle" id="modes-handle" aria-hidden="true"></div>
+    <header class="sheet__header">
+      <h2 class="sheet__title">Calculator mode</h2>
+      <button type="button" class="icon-btn" id="modes-close" aria-label="Close modes" title="Close">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+          <path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+        </svg>
+      </button>
+    </header>
+
+    <div class="sheet__list">
+      <div class="mode-grid" id="mode-grid">
+        <button type="button" class="mode-tile" data-mode="standard" aria-pressed="true">
+          <span class="mode-tile__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+              <path
+                d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 2v16h12V4H6zm2 2h8v3H8V6zm0 5h3v3H8v-3zm5 0h3v3h-3v-3zm-5 5h3v3H8v-3zm5 0h3v3h-3v-3z"
+              />
+            </svg>
+          </span>
+          <span class="mode-tile__label">Standard</span>
+        </button>
+
+        <button type="button" class="mode-tile" data-mode="scientific" aria-pressed="false">
+          <span class="mode-tile__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+              <path d="M18 4H6v2l6.5 6L6 18v2h12v-3h-2v1H10.31L14 13.19 10.31 8H16v1h2V4z" />
+            </svg>
+          </span>
+          <span class="mode-tile__label">Scientific</span>
+        </button>
+
+        <button type="button" class="mode-tile is-soon" disabled>
+          <span class="mode-tile__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+              <path d="M7 7h11l-4-4 1.4-1.4L21.8 8l-6.4 6.4L14 13l4-4H7V7zm10 10H6l4 4-1.4 1.4L2.2 16l6.4-6.4L10 11l-4 4h11v2z" />
+            </svg>
+          </span>
+          <span class="mode-tile__label">Unit converter</span>
+          <span class="mode-tile__soon">Soon</span>
+        </button>
+
+        <button type="button" class="mode-tile is-soon" disabled>
+          <span class="mode-tile__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+              <path
+                d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1.5 15.4v1.1h-2v-1.1a4.6 4.6 0 0 1-1.9-.6l.5-1.9c.5.3 1.2.6 1.9.6.7 0 1.2-.3 1.2-.8 0-.4-.3-.7-1.3-1-1.5-.5-2.4-1.1-2.4-2.4 0-1.1.8-2 2-2.3V8.5h2v1.1c.7.1 1.3.3 1.8.6l-.5 1.9c-.5-.3-1-.5-1.7-.5-.7 0-1.1.3-1.1.7 0 .4.4.6 1.4 1 1.5.5 2.4 1.1 2.4 2.4 0 1.2-.9 2.2-2.3 2.5z"
+              />
+            </svg>
+          </span>
+          <span class="mode-tile__label">Currency</span>
+          <span class="mode-tile__soon">Soon</span>
+        </button>
+
+        <button type="button" class="mode-tile is-soon" disabled>
+          <span class="mode-tile__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+              <path d="M5 9h3v11H5V9zm5-6h3v17h-3V3zm5 8h3v9h-3v-9zM3 21h18v-1.5H3V21z" />
+            </svg>
+          </span>
+          <span class="mode-tile__label">Graph</span>
+          <span class="mode-tile__soon">Soon</span>
+        </button>
+      </div>
+
+      <p class="mode-note" id="mode-note">
+        Standard and Scientific work today. The other modes are on the way and will arrive in an
+        update.
+      </p>
+    </div>
   </aside>
 
   <!-- Settings bottom sheet: version + update check, about and the privacy note -->

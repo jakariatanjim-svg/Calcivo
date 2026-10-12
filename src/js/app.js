@@ -42,17 +42,21 @@ const els = {
   expression: document.getElementById('expression'),
   entry: document.getElementById('entry'),
   preview: document.getElementById('preview'),
-  previewExpression: document.getElementById('preview-expression'),
-  previewLabel: document.getElementById('preview-label'),
   previewValue: document.getElementById('preview-value'),
   keypad: document.getElementById('keypad'),
   extraKeys: document.getElementById('extra-keys'),
   brandLabel: document.getElementById('brand-label'),
+  caret: document.getElementById('caret'),
   floatingBtn: document.getElementById('floating-btn'),
+  signBtn: document.getElementById('sign-btn'),
   scientificBtn: document.getElementById('scientific-btn'),
-  modeBtn: document.getElementById('mode-btn'),
-  modeLabel: document.getElementById('mode-label'),
-  modeMenu: document.getElementById('mode-menu'),
+  modesBtn: document.getElementById('modes-btn'),
+  modeGrid: document.getElementById('mode-grid'),
+  modesSheet: document.getElementById('modes-sheet'),
+  modesClose: document.getElementById('modes-close'),
+  modesBackdrop: document.getElementById('modes-backdrop'),
+  modesHandle: document.getElementById('modes-handle'),
+  modesHeader: document.querySelector('#modes-sheet .sheet__header'),
   menuBtn: document.getElementById('menu-btn'),
   appMenu: document.getElementById('app-menu'),
   menuHistory: document.getElementById('menu-history'),
@@ -98,6 +102,10 @@ const els = {
 
 const ACTION_HANDLERS = {
   digit: (value) => calculator.pressDigit(value),
+  'double-zero': () => {
+    calculator.pressDigit('0');
+    calculator.pressDigit('0');
+  },
   decimal: () => calculator.pressDecimal(),
   operator: (value) => calculator.pressOperator(value),
   equals: () => calculator.pressEquals(),
@@ -174,23 +182,40 @@ const calculator = new Calculator({
  * Rendering
  * ------------------------------------------------------------------------ */
 
+/**
+ * Display layout: the expression the user is typing is the big line, the
+ * running answer sits under it in a quieter colour. After equals the answer
+ * takes over the big line and the expression moves up as a small caption.
+ */
 function render() {
   const snapshot = calculator.snapshot();
 
-  const expressionText =
-    snapshot.expressionText || (snapshot.mode === 'result' ? snapshot.lastExpression : '');
-  els.expression.textContent = expressionText || '\u00a0';
+  const isResult = snapshot.mode === 'result';
+  // Errors take over the big line the same way a result does.
+  const committed = isResult || snapshot.mode === 'error';
+  const mainText = committed
+    ? snapshot.entryText
+    : snapshot.expressionText || snapshot.entryText;
 
-  els.entry.textContent = snapshot.entryText;
+  els.expression.textContent = committed
+    ? snapshot.lastExpression.replace(/\s*=$/, '') || '\u00a0'
+    : '\u00a0';
+
+  els.entry.textContent = mainText;
   els.entry.classList.toggle('is-error', snapshot.entryIsError);
-  els.entry.classList.toggle('is-result', snapshot.entryIsResult);
+  els.entry.classList.toggle('is-result', isResult);
 
-  const length = snapshot.entryText.length;
-  els.entry.classList.toggle('is-length-2', length > 7 && length <= 10);
-  els.entry.classList.toggle('is-length-3', length > 10 && length <= 14);
-  els.entry.classList.toggle('is-length-4', length > 14);
+  const length = mainText.length;
+  els.entry.classList.toggle('is-length-2', length > 8 && length <= 12);
+  els.entry.classList.toggle('is-length-3', length > 12 && length <= 17);
+  els.entry.classList.toggle('is-length-4', length > 17);
 
-  renderPreview(snapshot.preview);
+  // The caret sits after what has been typed, and disappears while a result is
+  // on screen or when the entry turned into an error.
+  const typing = !committed;
+  if (els.caret) els.caret.hidden = !typing;
+
+  renderPreview(snapshot.preview, snapshot);
 
   document.querySelectorAll('.btn--op').forEach((button) => {
     const isActive =
@@ -204,29 +229,34 @@ function render() {
   els.entry.scrollLeft = els.entry.scrollWidth;
 }
 
-function renderPreview(preview) {
-  if (!preview) {
+function renderPreview(preview, snapshot) {
+  const message = preview && preview.ok === false ? preview.message : '';
+
+  if (!preview && !(snapshot.mode === 'error' && snapshot.errorMessage)) {
     els.preview.hidden = true;
     lastPreviewValue = null;
     return;
   }
 
-  els.preview.hidden = false;
-  const isError = preview.ok === false;
-  els.preview.classList.toggle('is-error', isError);
-
-  if (isError) {
-    els.previewExpression.textContent = '';
-    els.previewExpression.hidden = true;
-    els.previewLabel.hidden = true;
-    els.previewValue.textContent = preview.message;
+  // An error is reported in the same place the answer would appear.
+  if (message) {
+    els.preview.hidden = false;
+    els.preview.classList.add('is-error');
+    els.previewValue.textContent = message;
     lastPreviewValue = null;
     return;
   }
 
-  els.previewExpression.hidden = false;
-  els.previewLabel.hidden = false;
-  els.previewExpression.textContent = preview.expression;
+  if (!preview) {
+    els.preview.hidden = false;
+    els.preview.classList.add('is-error');
+    els.previewValue.textContent = snapshot.errorMessage;
+    lastPreviewValue = null;
+    return;
+  }
+
+  els.preview.hidden = false;
+  els.preview.classList.remove('is-error');
   els.previewValue.textContent = preview.value;
 
   if (lastPreviewValue !== null && lastPreviewValue !== preview.value) {
@@ -438,6 +468,13 @@ const panels = {
     trigger: els.menuBtn,
     handles: [els.settingsHandle, els.settingsHeader],
   },
+  modes: {
+    sheet: els.modesSheet,
+    backdrop: els.modesBackdrop,
+    close: els.modesClose,
+    trigger: els.modesBtn,
+    handles: [els.modesHandle, els.modesHeader],
+  },
 };
 
 let openPanelName = null;
@@ -590,16 +627,14 @@ let calculatorMode = 'standard';
 function setCalculatorMode(next, { feedback = true } = {}) {
   const wanted = MODES[next]?.available ? next : 'standard';
   calculatorMode = wanted;
-  const mode = MODES[wanted];
   const isScientific = wanted === 'scientific';
 
   els.extraKeys.hidden = !isScientific;
   els.scientificBtn.setAttribute('aria-pressed', isScientific ? 'true' : 'false');
-  els.modeLabel.textContent = mode.label;
   els.app.classList.toggle('is-scientific', isScientific);
 
-  for (const item of els.modeMenu.querySelectorAll('[data-mode]')) {
-    item.setAttribute('aria-checked', item.getAttribute('data-mode') === wanted ? 'true' : 'false');
+  for (const tile of els.modeGrid.querySelectorAll('[data-mode]')) {
+    tile.setAttribute('aria-pressed', tile.getAttribute('data-mode') === wanted ? 'true' : 'false');
   }
 
   if (feedback) keyFeedback();
@@ -610,13 +645,12 @@ function toggleScientific() {
 }
 
 /* --------------------------------------------------------------------------
- * Popup menus (mode picker and the three dot menu)
+ * Three dot menu (History and Settings)
  * ------------------------------------------------------------------------ */
 
 let openMenuName = null;
 
 const menus = () => ({
-  mode: { menu: els.modeMenu, trigger: els.modeBtn },
   app: { menu: els.appMenu, trigger: els.menuBtn },
 });
 
@@ -652,15 +686,7 @@ function toggleMenu(name) {
 }
 
 function attachMenus() {
-  els.modeBtn.addEventListener('click', () => toggleMenu('mode'));
   els.menuBtn.addEventListener('click', () => toggleMenu('app'));
-
-  els.modeMenu.addEventListener('click', (event) => {
-    const item = event.target.closest('[data-mode]');
-    if (!item) return;
-    setCalculatorMode(item.getAttribute('data-mode'));
-    closeMenus();
-  });
 
   els.menuHistory.addEventListener('click', () => {
     closeMenus();
@@ -801,6 +827,20 @@ function boot() {
 
   els.scientificBtn.addEventListener('click', () => toggleScientific());
   els.floatingBtn.addEventListener('click', () => openFloatingWindow());
+  els.signBtn.addEventListener('click', () => runAction('sign'));
+
+  els.modesBtn.addEventListener('click', () => {
+    openPanel('modes');
+    keyFeedback();
+  });
+  els.modeGrid.addEventListener('click', (event) => {
+    const tile = event.target.closest('[data-mode]');
+    if (!tile) return;
+    setCalculatorMode(tile.getAttribute('data-mode'));
+    closePanel('modes');
+  });
+  els.modesClose.addEventListener('click', () => closePanel('modes'));
+  els.modesBackdrop.addEventListener('click', () => closePanel('modes'));
 
   // While the app floats above another app it gets a compact layout.
   onFloatingWindowChange((active) => els.app.classList.toggle('is-floating', active));
@@ -834,6 +874,7 @@ function boot() {
 
   attachSheetDrag('history');
   attachSheetDrag('settings');
+  attachSheetDrag('modes');
 
   document.addEventListener('gesturestart', (event) => event.preventDefault());
   document.addEventListener('dblclick', (event) => event.preventDefault());

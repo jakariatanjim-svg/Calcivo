@@ -63,8 +63,6 @@ function preview() {
   return {
     hidden: chip.hidden,
     value: $('#preview-value').textContent,
-    expression: $('#preview-expression').textContent,
-    label: $('#preview-label').textContent,
     isError: chip.classList.contains('is-error'),
   };
 }
@@ -146,25 +144,29 @@ test('the three dot menu holds History and Settings', async () => {
   assert.equal($('#app-menu').hidden, true);
 });
 
-test('the mode menu switches between Standard and Scientific', async () => {
-  assert.equal($('#mode-label').textContent, 'Standard');
+test('the mode sheet switches between Standard and Scientific', async () => {
   assert.equal($('#extra-keys').hidden, true);
+  assert.equal($('#modes-sheet').classList.contains('is-open'), false);
+  assert.equal($('#mode-grid [data-mode="standard"]').getAttribute('aria-pressed'), 'true');
 
-  clickKey('#mode-btn');
+  clickKey('#modes-btn');
   await nextAnimationFrame();
-  assert.equal($('#mode-menu').hidden, false);
+  assert.equal($('#modes-sheet').classList.contains('is-open'), true);
+  assert.equal($('#modes-sheet').getAttribute('aria-hidden'), 'false');
 
-  const soon = [...document.querySelectorAll('#mode-menu .menu__item.is-soon')];
+  const soon = [...document.querySelectorAll('#mode-grid .mode-tile.is-soon')];
   assert.equal(soon.length, 3, 'the roadmap modes are listed but disabled');
+  assert.equal(soon[0].disabled, true);
 
-  clickKey('#mode-menu [data-mode="scientific"]');
+  clickKey('#mode-grid [data-mode="scientific"]');
   await nextAnimationFrame();
-  assert.equal($('#mode-label').textContent, 'Scientific');
+  assert.equal($('#modes-sheet').classList.contains('is-open'), false);
+  assert.equal($('#mode-grid [data-mode="scientific"]').getAttribute('aria-pressed'), 'true');
   assert.equal($('#extra-keys').hidden, false);
   assert.equal($('#scientific-btn').getAttribute('aria-pressed'), 'true');
 
   clickKey('#scientific-btn');
-  assert.equal($('#mode-label').textContent, 'Standard');
+  assert.equal($('#mode-grid [data-mode="standard"]').getAttribute('aria-pressed'), 'true');
   assert.equal($('#extra-keys').hidden, true);
 });
 
@@ -176,6 +178,24 @@ test('the floating window button explains itself outside Android', async () => {
   await nextFrame();
   assert.equal($('#snackbar').hidden, false);
   assert.match($('#snackbar').textContent, /Android 8/);
+});
+
+test('the sign button and the double zero key feed the engine', () => {
+  pressKeys('Escape');
+  pressKeys('7');
+  clickKey('#sign-btn');
+  assert.equal($('#entry').textContent, '-7');
+  clickKey('#sign-btn');
+  assert.equal($('#entry').textContent, '7');
+
+  pressKeys('Escape');
+  clickKey('#keypad [data-action="double-zero"]');
+  assert.equal($('#entry').textContent, '0');
+
+  pressKeys('5');
+  clickKey('#keypad [data-action="double-zero"]');
+  assert.equal($('#entry').textContent, '500');
+  pressKeys('Escape');
 });
 
 test('the settings sheet shows the installed version and the roadmap', async () => {
@@ -221,14 +241,14 @@ test('the background check reports the newer release', async () => {
   assert.equal($('#update-badge').hidden, false, 'the about button is badged');
 });
 
-test('shows the live preview while an expression is typed', () => {
+test('the whole expression stays big while the answer sits underneath', () => {
   pressKeys('1', '2', '+', '5');
   const chip = preview();
   assert.equal(chip.hidden, false);
   assert.equal(chip.value, '17');
-  assert.equal(chip.expression, '12 + 5');
-  assert.equal($('#expression').textContent, '12 + 5');
-  assert.equal($('#entry').textContent, '5');
+  assert.equal($('#entry').textContent, '12 + 5');
+  // the small caption line only appears once a result has been committed
+  assert.equal($('#expression').textContent.trim(), '');
 });
 
 test('preview follows precedence without pressing equals', () => {
@@ -241,7 +261,7 @@ test('equals commits the result and writes it to history', () => {
   assert.equal($('#entry').textContent, '22');
   assert.equal($('#entry').classList.contains('is-result'), true);
   assert.equal($('#preview').hidden, true);
-  assert.equal($('#expression').textContent, '12 + 5 \u00d7 2 =');
+  assert.equal($('#expression').textContent, '12 + 5 \u00d7 2');
 
   const items = document.querySelectorAll('.history-item');
   assert.equal(items.length, 1);
@@ -314,7 +334,7 @@ test('extra keys toggle and feed the engine', () => {
   pressKeys('3', '+', '4');
   clickKey('.btn--extra[data-action="paren"]');
   assert.equal(preview().value, '7');
-  assert.equal(preview().expression, '(3 + 4)');
+  assert.equal($('#entry').textContent, '(3 + 4)');
 
   pressKeys('Escape');
   pressKeys('9');
