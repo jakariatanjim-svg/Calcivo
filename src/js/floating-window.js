@@ -51,7 +51,9 @@ export async function enterFloatingWindow() {
  */
 export function onFloatingWindowChange(handler) {
   if (typeof window === 'undefined' || typeof handler !== 'function') return () => {};
-  const listener = (event) => handler(Boolean(event?.detail?.active));
+  // Capacitor's native bridge copies the payload onto the event object itself
+  // (a plain Event, not a CustomEvent), so `active` is read from there.
+  const listener = (event) => handler(Boolean(event?.active ?? event?.detail?.active));
   window.addEventListener('floatingWindowChanged', listener);
   return () => window.removeEventListener('floatingWindowChanged', listener);
 }
