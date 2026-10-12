@@ -237,11 +237,54 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          cp "android/app/build/outputs/apk/${VARIANT}/app-${VARIANT}.apk" "dist/${APK_NAME}"
+
+          APK_DIR="android/app/build/outputs/apk/${VARIANT}"
+          echo "Build output:"
+          ls -la "${APK_DIR}" 2>/dev/null || echo "  (no such directory: ${APK_DIR})"
+
+          # Normally app-<variant>.apk. The search keeps this step working when
+          # Gradle adds a suffix (a build type without a signing config produces
+          # app-<variant>-unsigned.apk), and the guard below turns a missing APK
+          # into a readable error instead of a bare `cp: cannot stat`.
+          SOURCE="${APK_DIR}/app-${VARIANT}.apk"
+          if [ ! -f "${SOURCE}" ]; then
+            SOURCE="$(find "${APK_DIR}" -maxdepth 1 -name '*.apk' -type f -print -quit 2>/dev/null || true)"
+          fi
+
+          if [ -z "${SOURCE}" ] || [ ! -f "${SOURCE}" ]; then
+            echo "::error::Gradle did not produce an APK in ${APK_DIR}"
+            find android/app/build/outputs -name '*.apk' || true
+            exit 1
+          fi
+
+          echo "Using ${SOURCE}"
+          cp "${SOURCE}" "dist/${APK_NAME}"
           cd dist
           sha256sum "${APK_NAME}" > "${APK_NAME}.sha256"
           echo "${VERSION}" > version.txt
           ls -lh
+
+      - name: Check the APK is signed
+        env:
+          APK_NAME: ${{ steps.version.outputs.apk_name }}
+        run: |
+          set -euo pipefail
+
+          # An unsigned APK builds and uploads fine and then refuses to install
+          # on a phone, so the signature is verified here.
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          APKSIGNER=""
+          if [ -n "${SDK_ROOT}" ] && [ -d "${SDK_ROOT}/build-tools" ]; then
+            APKSIGNER="$(find "${SDK_ROOT}/build-tools" -maxdepth 2 -name apksigner -type f | sort | tail -n 1)"
+          fi
+
+          if [ -z "${APKSIGNER}" ]; then
+            echo "apksigner not found in the SDK - skipping the signature check"
+            exit 0
+          fi
+
+          "${APKSIGNER}" verify --verbose --print-certs "dist/${APK_NAME}"
+          echo "dist/${APK_NAME} is signed and installable"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

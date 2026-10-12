@@ -275,7 +275,10 @@ public class ApkUpdaterPlugin extends Plugin {
     private static String toHex(byte[] bytes) {
         StringBuilder builder = new StringBuilder(bytes.length * 2);
         for (byte value : bytes) {
-            builder.append(String.format(Locale.US, "%02x", value));
+            // "& 0xFF" keeps the byte unsigned; without it a byte >= 0x80 is
+            // sign extended and formatted as eight characters (ffffff80),
+            // so the SHA-256 would never match the published checksum.
+            builder.append(String.format(Locale.US, "%02x", value & 0xFF));
         }
         return builder.toString();
     }
