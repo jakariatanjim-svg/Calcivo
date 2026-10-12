@@ -13,14 +13,13 @@ import {
 
 const release = (overrides = {}) => ({
   tag_name: 'v1.4',
-  name: 'Calcivo 1.4',
-  html_url: 'https://github.com/jakariatanjim-svg/test/releases/tag/v1.4',
+  name: 'CalcS 1.4',
+  html_url: 'https://github.com/jakariatanjim-svg/Calcivo/releases/tag/v1.4',
   published_at: '2026-10-12T09:30:00Z',
-  body: '## Calcivo 1.4\n\n- live preview chip\n- in-app updates\n',
+  body: '## CalcS 1.4\n\n- live preview chip\n- in-app updates\n',
   assets: [
-    { name: 'Calcivo-latest.apk', browser_download_url: 'https://example.com/latest.apk', size: 5200000 },
-    { name: 'Calcivo_1.4_developer.apk', browser_download_url: 'https://example.com/1.4.apk', size: 5200000 },
-    { name: 'Calcivo_1.4_developer.apk.sha256', browser_download_url: 'https://example.com/1.4.apk.sha256', size: 90 },
+    { name: 'CalcS_1.4_release.apk', browser_download_url: 'https://example.com/1.4.apk', size: 5200000 },
+    { name: 'CalcS_1.4_release.apk.sha256', browser_download_url: 'https://example.com/1.4.apk.sha256', size: 90 },
   ],
   ...overrides,
 });
@@ -32,26 +31,39 @@ const respondWith = (payload, status = 200) => async () => ({
 });
 
 test('normalizeRepository accepts the ways a repository is written', () => {
-  assert.equal(normalizeRepository('jakariatanjim-svg/test'), 'jakariatanjim-svg/test');
-  assert.equal(normalizeRepository('https://github.com/jakariatanjim-svg/test'), 'jakariatanjim-svg/test');
-  assert.equal(normalizeRepository('https://github.com/jakariatanjim-svg/test.git'), 'jakariatanjim-svg/test');
-  assert.equal(normalizeRepository('git@github.com:jakariatanjim-svg/test.git'), 'jakariatanjim-svg/test');
+  assert.equal(normalizeRepository('jakariatanjim-svg/Calcivo'), 'jakariatanjim-svg/Calcivo');
+  assert.equal(normalizeRepository('https://github.com/jakariatanjim-svg/Calcivo'), 'jakariatanjim-svg/Calcivo');
+  assert.equal(normalizeRepository('https://github.com/jakariatanjim-svg/Calcivo.git'), 'jakariatanjim-svg/Calcivo');
+  assert.equal(normalizeRepository('git@github.com:jakariatanjim-svg/Calcivo.git'), 'jakariatanjim-svg/Calcivo');
   assert.equal(normalizeRepository(''), '');
   assert.equal(normalizeRepository('not a repo'), '');
 });
 
-test('findApkAssets prefers the stable latest APK and finds its checksum', () => {
+test('findApkAssets picks the APK that matches the release version', () => {
   const { apk, checksum } = findApkAssets(release());
-  assert.equal(apk.name, 'Calcivo-latest.apk');
-  assert.equal(checksum, null);
+  assert.equal(apk.name, 'CalcS_1.4_release.apk');
+  assert.equal(checksum.name, 'CalcS_1.4_release.apk.sha256');
+  assert.equal(apk.browser_download_url, 'https://example.com/1.4.apk');
+});
 
-  const withChecksum = release({
+test('findApkAssets prefers the versioned APK over an old "latest" copy', () => {
+  const legacy = release({
     assets: [
-      { name: 'Calcivo-latest.apk', browser_download_url: 'https://example.com/latest.apk', size: 10 },
-      { name: 'Calcivo-latest.apk.sha256', browser_download_url: 'https://example.com/latest.apk.sha256', size: 90 },
+      { name: 'CalcS-latest.apk', browser_download_url: 'https://example.com/latest.apk', size: 10 },
+      { name: 'CalcS_1.4_release.apk', browser_download_url: 'https://example.com/1.4.apk', size: 10 },
+      { name: 'CalcS_1.4_release.apk.sha256', browser_download_url: 'https://example.com/1.4.apk.sha256', size: 90 },
     ],
   });
-  assert.equal(findApkAssets(withChecksum).checksum.name, 'Calcivo-latest.apk.sha256');
+  assert.equal(findApkAssets(legacy).apk.name, 'CalcS_1.4_release.apk');
+  assert.equal(findApkAssets(legacy).checksum.name, 'CalcS_1.4_release.apk.sha256');
+});
+
+test('findApkAssets falls back to whatever APK a hand made release carries', () => {
+  const single = release({
+    assets: [{ name: 'CalcS.apk', browser_download_url: 'https://example.com/x.apk', size: 10 }],
+  });
+  assert.equal(findApkAssets(single).apk.name, 'CalcS.apk');
+  assert.equal(findApkAssets(single).checksum, null);
 });
 
 test('findApkAssets copes with releases without an APK', () => {
@@ -69,13 +81,13 @@ test('versionFromTag reads the version out of the tag', () => {
 });
 
 test('summarizeNotes flattens markdown for the update card', () => {
-  const text = summarizeNotes('## Calcivo 1.4\n\n- live preview chip\n- **in-app** updates\n\n---\nlast');
-  assert.equal(text, 'Calcivo 1.4\nlive preview chip\nin-app updates\nlast');
+  const text = summarizeNotes('## CalcS 1.4\n\n- live preview chip\n- **in-app** updates\n\n---\nlast');
+  assert.equal(text, 'CalcS 1.4\nlive preview chip\nin-app updates\nlast');
 });
 
 test('checksumMatches compares the sha lines written by sha256sum', () => {
   const hash = 'a'.repeat(64);
-  assert.equal(checksumMatches(`${hash}  Calcivo_1.4_developer.apk`, hash), true);
+  assert.equal(checksumMatches(`${hash}  CalcS_1.4_developer.apk`, hash), true);
   assert.equal(checksumMatches(`${hash.toUpperCase()}  file.apk`, hash), true);
   assert.equal(checksumMatches('b'.repeat(64), hash), false);
   assert.equal(checksumMatches(null, hash), false);
@@ -91,8 +103,9 @@ test('checkForUpdate reports an available update', async () => {
   assert.equal(result.status, 'update');
   assert.equal(result.currentVersion, '1.3');
   assert.equal(result.latestVersion, '1.4');
-  assert.equal(result.releaseName, 'Calcivo 1.4');
-  assert.equal(result.apk.url, 'https://example.com/latest.apk');
+  assert.equal(result.releaseName, 'CalcS 1.4');
+  assert.equal(result.apk.url, 'https://example.com/1.4.apk');
+  assert.equal(result.apk.name, 'CalcS_1.4_release.apk');
   assert.equal(result.apk.size, 5200000);
   assert.match(result.notes, /live preview chip/);
   assert.match(result.message, /1\.4/);

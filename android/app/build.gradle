@@ -41,10 +41,10 @@ if (keystorePath != null && !hasReleaseKeystore) {
 }
 
 android {
-    namespace = "io.github.jakariatanjim.calcivo"
+    namespace = "io.github.jakariatanjim.calcs"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "io.github.jakariatanjim.calcivo"
+        applicationId "io.github.jakariatanjim.calcs"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode appVersionCode

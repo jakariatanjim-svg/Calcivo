@@ -73,12 +73,12 @@ function resolveBuildInfo() {
   const stored = readVersionInfo();
   const version = (process.env.BUILD_VERSION || stored.version).trim();
   return {
-    name: stored.name || 'Calcivo',
+    name: stored.name || 'CalcS',
     version,
     variant: (process.env.BUILD_VARIANT || 'dev').trim(),
     commit: (process.env.BUILD_COMMIT || '').trim() || 'unknown',
     builtAt: (process.env.BUILD_TIME || '').trim() || new Date().toISOString(),
-    repository: detectRepository() || 'jakariatanjim-svg/test',
+    repository: detectRepository() || 'jakariatanjim-svg/Calcivo',
   };
 }
 

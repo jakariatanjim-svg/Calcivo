@@ -20,14 +20,14 @@ const webDir = path.join(root, 'www');
 
 const RELEASE = {
   tag_name: 'v9.9',
-  name: 'Calcivo 9.9',
-  html_url: 'https://github.com/jakariatanjim-svg/test/releases/tag/v9.9',
+  name: 'CalcS 9.9',
+  html_url: 'https://github.com/jakariatanjim-svg/Calcivo/releases/tag/v9.9',
   published_at: '2026-10-12T09:30:00Z',
   body: '## Highlights\n- live preview',
   assets: [
     {
-      name: 'Calcivo-latest.apk',
-      browser_download_url: 'https://example.com/Calcivo-latest.apk',
+      name: 'CalcS_9.9_release.apk',
+      browser_download_url: 'https://example.com/CalcS_9.9_release.apk',
       size: 3 * 1024 * 1024,
     },
   ],
@@ -53,13 +53,16 @@ function nextFrame() {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
+/** jsdom serves requestAnimationFrame on a ~16 ms clock, so wait for a frame. */
+function nextAnimationFrame() {
+  return new Promise((resolve) => setTimeout(resolve, 40));
+}
+
 function preview() {
   const chip = $('#preview');
   return {
     hidden: chip.hidden,
     value: $('#preview-value').textContent,
-    expression: $('#preview-expression').textContent,
-    label: $('#preview-label').textContent,
     isError: chip.classList.contains('is-error'),
   };
 }
@@ -75,12 +78,12 @@ before(async () => {
   document = window.document;
 
   const versionInfo = {
-    name: 'Calcivo',
+    name: 'CalcS',
     version: '1.2',
     variant: 'developer',
     commit: 'abc1234',
     builtAt: '2026-10-12T09:30:00Z',
-    repository: 'jakariatanjim-svg/test',
+    repository: 'jakariatanjim-svg/Calcivo',
   };
 
   // Every network call the app makes is answered locally.
@@ -98,7 +101,7 @@ before(async () => {
   window.fetch = fetchMock;
   globalThis.fetch = fetchMock;
 
-  window.__CALCIVO_TEST__ = true;
+  window.__CALCS_TEST__ = true;
   globalThis.window = window;
   globalThis.document = document;
   globalThis.requestAnimationFrame = window.requestAnimationFrame.bind(window);
@@ -113,43 +116,139 @@ before(async () => {
   await nextFrame();
 });
 
-test('boots as Calcivo with an empty display', () => {
-  assert.equal($('.app-bar__title').textContent, 'Calcivo');
-  assert.equal(document.title, 'Calcivo');
+test('boots as CalcS with an empty display', () => {
+  assert.equal($('#brand-label').textContent, 'CalcS');
+  assert.equal(document.title, 'CalcS');
   assert.equal($('#entry').textContent, '0');
   assert.equal($('#preview').hidden, true);
 });
 
-test('the about sheet shows the installed version and the roadmap', () => {
-  clickKey('#about-btn');
-  assert.equal($('#about-version').textContent, '1.2');
-  assert.match($('#build-label').textContent, /Version 1\.2/);
-  assert.match($('#build-label').textContent, /jakariatanjim-svg\/test/);
+test('the three dot menu holds History and Settings', async () => {
+  assert.equal($('#app-menu').hidden, true);
 
+  clickKey('#menu-btn');
+  await nextAnimationFrame();
+  assert.equal($('#app-menu').hidden, false);
+  assert.equal($('#app-menu').classList.contains('is-open'), true);
+  assert.equal($('#menu-btn').getAttribute('aria-expanded'), 'true');
+
+  const items = [...document.querySelectorAll('#app-menu .menu__item')].map((item) =>
+    item.textContent.trim(),
+  );
+  assert.deepEqual(items, ['History', 'Settings']);
+
+  clickKey('#menu-btn');
+  assert.equal($('#app-menu').classList.contains('is-open'), false);
+  // the menu element itself is hidden once the closing animation is over
+  await new Promise((resolve) => setTimeout(resolve, 220));
+  assert.equal($('#app-menu').hidden, true);
+});
+
+test('the mode sheet switches between Standard and Scientific', async () => {
+  assert.equal($('#extra-keys').hidden, true);
+  assert.equal($('#modes-sheet').classList.contains('is-open'), false);
+  assert.equal($('#mode-grid [data-mode="standard"]').getAttribute('aria-pressed'), 'true');
+
+  clickKey('#modes-btn');
+  await nextAnimationFrame();
+  assert.equal($('#modes-sheet').classList.contains('is-open'), true);
+  assert.equal($('#modes-sheet').getAttribute('aria-hidden'), 'false');
+
+  const soon = [...document.querySelectorAll('#mode-grid .mode-tile.is-soon')];
+  assert.equal(soon.length, 3, 'the roadmap modes are listed but disabled');
+  assert.equal(soon[0].disabled, true);
+
+  clickKey('#mode-grid [data-mode="scientific"]');
+  await nextAnimationFrame();
+  assert.equal($('#modes-sheet').classList.contains('is-open'), false);
+  assert.equal($('#mode-grid [data-mode="scientific"]').getAttribute('aria-pressed'), 'true');
+  assert.equal($('#extra-keys').hidden, false);
+  assert.equal($('#scientific-btn').getAttribute('aria-pressed'), 'true');
+
+  clickKey('#scientific-btn');
+  assert.equal($('#mode-grid [data-mode="standard"]').getAttribute('aria-pressed'), 'true');
+  assert.equal($('#extra-keys').hidden, true);
+});
+
+test('the floating window button explains itself outside Android', async () => {
+  const button = $('#floating-btn');
+  assert.ok(button, 'the app bar has a floating window button');
+
+  clickKey('#floating-btn');
+  await nextFrame();
+  assert.equal($('#snackbar').hidden, false);
+  assert.match($('#snackbar').textContent, /Android 8/);
+});
+
+test('the sign button and the double zero key feed the engine', () => {
+  pressKeys('Escape');
+  pressKeys('7');
+  clickKey('#sign-btn');
+  assert.equal($('#entry').textContent, '-7');
+  clickKey('#sign-btn');
+  assert.equal($('#entry').textContent, '7');
+
+  pressKeys('Escape');
+  clickKey('#keypad [data-action="double-zero"]');
+  assert.equal($('#entry').textContent, '0');
+
+  pressKeys('5');
+  clickKey('#keypad [data-action="double-zero"]');
+  assert.equal($('#entry').textContent, '500');
+  pressKeys('Escape');
+});
+
+test('the settings sheet shows the installed version and the roadmap', async () => {
+  clickKey('#menu-btn');
+  await nextAnimationFrame();
+  clickKey('#menu-settings');
+  await nextAnimationFrame();
+
+  assert.equal($('#settings-sheet').classList.contains('is-open'), true);
+  assert.equal($('#about-version').textContent, '1.2');
+  assert.equal($('#update-primary').textContent, 'Check for Update');
+  assert.equal($('#settings-title').textContent, 'Settings');
+  assert.match($('#build-label').textContent, /Version 1\.2/);
+  assert.match($('#build-label').textContent, /jakariatanjim-svg\/Calcivo/);
+
+  // About page
+  clickKey('#open-about');
+  assert.equal($('#settings-about').hidden, false);
+  assert.equal($('#settings-title').textContent, 'About CalcS');
+  assert.match($('#repo-link').getAttribute('href'), /github\.com\/jakariatanjim-svg\/Calcivo/);
   const items = document.querySelectorAll('.feature-list__item');
   assert.equal(items.length, 6);
   assert.match($('.about-section__title').textContent, /New features coming soon/);
 
-  clickKey('#about-close');
-  assert.equal($('#about-sheet').classList.contains('is-open'), false);
+  clickKey('#settings-back');
+  assert.equal($('#settings-about').hidden, true);
+
+  // Privacy page
+  clickKey('#open-privacy');
+  assert.equal($('#settings-privacy').hidden, false);
+  assert.match($('#settings-privacy').textContent, /does not collect anything/);
+
+  clickKey('#settings-close');
+  assert.equal($('#settings-sheet').classList.contains('is-open'), false);
+  await nextAnimationFrame();
 });
 
 test('the background check reports the newer release', async () => {
-  await window.__calcivo.updater.check();
-  assert.equal(window.__calcivo.updater.phase, 'available');
+  await window.__calcs.updater.check();
+  assert.equal(window.__calcs.updater.phase, 'available');
   assert.match($('#update-title').textContent, /9\.9/);
   assert.equal($('#update-primary').textContent, 'Download update');
   assert.equal($('#update-badge').hidden, false, 'the about button is badged');
 });
 
-test('shows the live preview while an expression is typed', () => {
+test('the whole expression stays big while the answer sits underneath', () => {
   pressKeys('1', '2', '+', '5');
   const chip = preview();
   assert.equal(chip.hidden, false);
   assert.equal(chip.value, '17');
-  assert.equal(chip.expression, '12 + 5');
-  assert.equal($('#expression').textContent, '12 + 5');
-  assert.equal($('#entry').textContent, '5');
+  assert.equal($('#entry').textContent, '12 + 5');
+  // the small caption line only appears once a result has been committed
+  assert.equal($('#expression').textContent.trim(), '');
 });
 
 test('preview follows precedence without pressing equals', () => {
@@ -162,7 +261,7 @@ test('equals commits the result and writes it to history', () => {
   assert.equal($('#entry').textContent, '22');
   assert.equal($('#entry').classList.contains('is-result'), true);
   assert.equal($('#preview').hidden, true);
-  assert.equal($('#expression').textContent, '12 + 5 \u00d7 2 =');
+  assert.equal($('#expression').textContent, '12 + 5 \u00d7 2');
 
   const items = document.querySelectorAll('.history-item');
   assert.equal(items.length, 1);
@@ -170,26 +269,30 @@ test('equals commits the result and writes it to history', () => {
 });
 
 test('history survives a reload through local storage', () => {
-  const stored = JSON.parse(window.localStorage.getItem('calcivo:history:v1'));
+  const stored = JSON.parse(window.localStorage.getItem('calcs:history:v1'));
   assert.equal(stored.length, 1);
   assert.equal(stored[0].expression, '12 + 5 \u00d7 2');
   assert.equal(stored[0].result, '22');
 });
 
 test('history sheet opens and closes', async () => {
-  clickKey('#history-btn');
-  await nextFrame();
+  clickKey('#menu-btn');
+  await nextAnimationFrame();
+  clickKey('#menu-history');
+  await nextAnimationFrame();
   assert.equal($('#history-sheet').classList.contains('is-open'), true);
   assert.equal($('#history-sheet').getAttribute('aria-hidden'), 'false');
 
   clickKey('#history-close');
   assert.equal($('#history-sheet').classList.contains('is-open'), false);
-  await nextFrame();
+  await nextAnimationFrame();
 });
 
 test('history row loads its value back into the calculator', async () => {
-  clickKey('#history-btn');
-  await nextFrame();
+  clickKey('#menu-btn');
+  await nextAnimationFrame();
+  clickKey('#menu-history');
+  await nextAnimationFrame();
   clickKey('.history-item');
   assert.equal($('#entry').textContent, '22');
   assert.equal($('#history-sheet').classList.contains('is-open'), false);
@@ -197,10 +300,13 @@ test('history row loads its value back into the calculator', async () => {
   assert.equal($('#entry').textContent, '0');
 });
 
-test('opening the about sheet clears the update badge', () => {
-  clickKey('#about-btn');
+test('opening settings clears the update badge', async () => {
+  clickKey('#menu-btn');
+  await nextAnimationFrame();
+  clickKey('#menu-settings');
   assert.equal($('#update-badge').hidden, true);
-  clickKey('#about-close');
+  clickKey('#settings-close');
+  await nextAnimationFrame();
 });
 
 test('division by zero is flagged before equals and after it', () => {
@@ -228,7 +334,7 @@ test('extra keys toggle and feed the engine', () => {
   pressKeys('3', '+', '4');
   clickKey('.btn--extra[data-action="paren"]');
   assert.equal(preview().value, '7');
-  assert.equal(preview().expression, '(3 + 4)');
+  assert.equal($('#entry').textContent, '(3 + 4)');
 
   pressKeys('Escape');
   pressKeys('9');

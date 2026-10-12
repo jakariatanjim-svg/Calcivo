@@ -1,6 +1,6 @@
 {
-  "name": "Calcivo",
-  "short_name": "Calcivo",
+  "name": "CalcS",
+  "short_name": "CalcS",
   "description": "A full screen calculator with a live result preview, history and in-app updates.",
   "start_url": ".",
   "scope": ".",

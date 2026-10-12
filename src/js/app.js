@@ -1,5 +1,5 @@
 /**
- * Calcivo - UI layer.
+ * CalcS - UI layer.
  *
  * Renders the snapshot produced by the calculator engine and forwards key
  * presses, keyboard input, gestures and native events back into it. It also
@@ -9,32 +9,58 @@
 import { Calculator, formatNumberForDisplay } from './engine.js';
 import {
   copyText,
+  getAppInfo,
   keyFeedback,
   registerBackButton,
   registerResume,
   resultFeedback,
 } from './native.js';
+import {
+  enterFloatingWindow,
+  isFloatingWindowSupported,
+  onFloatingWindowChange,
+} from './floating-window.js';
 import { DEFAULT_REPOSITORY, normalizeRepository } from './update.js';
 import { createUpdater } from './update-ui.js';
 
-const HISTORY_KEY = 'calcivo:history:v1';
+const HISTORY_KEY = 'calcs:history:v1';
+/* Key used before the app was renamed to CalcS; read once and moved over. */
+const LEGACY_HISTORY_KEY = 'calcivo:history:v1';
 const HISTORY_LIMIT = 50;
 const BUILD_INFO_URL = 'version.json';
 const LONG_PRESS_MS = 450;
 const AUTO_CHECK_DELAY_MS = 1500;
+
+/** Calculator modes. The first two work today, the rest are on the roadmap. */
+const MODES = {
+  standard: { label: 'Standard', available: true },
+  scientific: { label: 'Scientific', available: true },
+};
 
 const els = {
   app: document.querySelector('.app'),
   expression: document.getElementById('expression'),
   entry: document.getElementById('entry'),
   preview: document.getElementById('preview'),
-  previewExpression: document.getElementById('preview-expression'),
-  previewLabel: document.getElementById('preview-label'),
   previewValue: document.getElementById('preview-value'),
   keypad: document.getElementById('keypad'),
   extraKeys: document.getElementById('extra-keys'),
+  brandLabel: document.getElementById('brand-label'),
+  caret: document.getElementById('caret'),
+  floatingBtn: document.getElementById('floating-btn'),
+  signBtn: document.getElementById('sign-btn'),
   scientificBtn: document.getElementById('scientific-btn'),
-  historyBtn: document.getElementById('history-btn'),
+  modesBtn: document.getElementById('modes-btn'),
+  modeGrid: document.getElementById('mode-grid'),
+  modesSheet: document.getElementById('modes-sheet'),
+  modesClose: document.getElementById('modes-close'),
+  modesBackdrop: document.getElementById('modes-backdrop'),
+  modesHandle: document.getElementById('modes-handle'),
+  modesHeader: document.querySelector('#modes-sheet .sheet__header'),
+  menuBtn: document.getElementById('menu-btn'),
+  appMenu: document.getElementById('app-menu'),
+  menuHistory: document.getElementById('menu-history'),
+  menuSettings: document.getElementById('menu-settings'),
   historySheet: document.getElementById('history-sheet'),
   historyList: document.getElementById('history-list'),
   historyClear: document.getElementById('history-clear'),
@@ -42,12 +68,21 @@ const els = {
   historyBackdrop: document.getElementById('sheet-backdrop'),
   historyHandle: document.getElementById('sheet-handle'),
   historyHeader: document.querySelector('#history-sheet .sheet__header'),
-  aboutBtn: document.getElementById('about-btn'),
-  aboutSheet: document.getElementById('about-sheet'),
-  aboutClose: document.getElementById('about-close'),
-  aboutBackdrop: document.getElementById('about-backdrop'),
-  aboutHandle: document.getElementById('about-handle'),
-  aboutHeader: document.querySelector('#about-sheet .sheet__header'),
+  settingsSheet: document.getElementById('settings-sheet'),
+  settingsClose: document.getElementById('settings-close'),
+  settingsBack: document.getElementById('settings-back'),
+  settingsTitle: document.getElementById('settings-title'),
+  settingsBackdrop: document.getElementById('settings-backdrop'),
+  settingsHandle: document.getElementById('settings-handle'),
+  settingsHeader: document.querySelector('#settings-sheet .sheet__header'),
+  settingsList: document.querySelector('#settings-sheet .sheet__list'),
+  settingsRoot: document.getElementById('settings-root'),
+  settingsAbout: document.getElementById('settings-about'),
+  settingsPrivacy: document.getElementById('settings-privacy'),
+  openAbout: document.getElementById('open-about'),
+  openPrivacy: document.getElementById('open-privacy'),
+  repoLink: document.getElementById('repo-link'),
+  versionApp: document.getElementById('version-app'),
   aboutVersion: document.getElementById('about-version'),
   updateBadge: document.getElementById('update-badge'),
   updateCard: document.getElementById('update-card'),
@@ -67,6 +102,10 @@ const els = {
 
 const ACTION_HANDLERS = {
   digit: (value) => calculator.pressDigit(value),
+  'double-zero': () => {
+    calculator.pressDigit('0');
+    calculator.pressDigit('0');
+  },
   decimal: () => calculator.pressDecimal(),
   operator: (value) => calculator.pressOperator(value),
   equals: () => calculator.pressEquals(),
@@ -123,7 +162,7 @@ const KEY_MAP = {
 };
 
 const buildInfo = {
-  name: 'Calcivo',
+  name: 'CalcS',
   version: '1.0',
   variant: 'dev',
   commit: 'unknown',
@@ -143,23 +182,40 @@ const calculator = new Calculator({
  * Rendering
  * ------------------------------------------------------------------------ */
 
+/**
+ * Display layout: the expression the user is typing is the big line, the
+ * running answer sits under it in a quieter colour. After equals the answer
+ * takes over the big line and the expression moves up as a small caption.
+ */
 function render() {
   const snapshot = calculator.snapshot();
 
-  const expressionText =
-    snapshot.expressionText || (snapshot.mode === 'result' ? snapshot.lastExpression : '');
-  els.expression.textContent = expressionText || '\u00a0';
+  const isResult = snapshot.mode === 'result';
+  // Errors take over the big line the same way a result does.
+  const committed = isResult || snapshot.mode === 'error';
+  const mainText = committed
+    ? snapshot.entryText
+    : snapshot.expressionText || snapshot.entryText;
 
-  els.entry.textContent = snapshot.entryText;
+  els.expression.textContent = committed
+    ? snapshot.lastExpression.replace(/\s*=$/, '') || '\u00a0'
+    : '\u00a0';
+
+  els.entry.textContent = mainText;
   els.entry.classList.toggle('is-error', snapshot.entryIsError);
-  els.entry.classList.toggle('is-result', snapshot.entryIsResult);
+  els.entry.classList.toggle('is-result', isResult);
 
-  const length = snapshot.entryText.length;
-  els.entry.classList.toggle('is-length-2', length > 7 && length <= 10);
-  els.entry.classList.toggle('is-length-3', length > 10 && length <= 14);
-  els.entry.classList.toggle('is-length-4', length > 14);
+  const length = mainText.length;
+  els.entry.classList.toggle('is-length-2', length > 8 && length <= 12);
+  els.entry.classList.toggle('is-length-3', length > 12 && length <= 17);
+  els.entry.classList.toggle('is-length-4', length > 17);
 
-  renderPreview(snapshot.preview);
+  // The caret sits after what has been typed, and disappears while a result is
+  // on screen or when the entry turned into an error.
+  const typing = !committed;
+  if (els.caret) els.caret.hidden = !typing;
+
+  renderPreview(snapshot.preview, snapshot);
 
   document.querySelectorAll('.btn--op').forEach((button) => {
     const isActive =
@@ -173,29 +229,34 @@ function render() {
   els.entry.scrollLeft = els.entry.scrollWidth;
 }
 
-function renderPreview(preview) {
-  if (!preview) {
+function renderPreview(preview, snapshot) {
+  const message = preview && preview.ok === false ? preview.message : '';
+
+  if (!preview && !(snapshot.mode === 'error' && snapshot.errorMessage)) {
     els.preview.hidden = true;
     lastPreviewValue = null;
     return;
   }
 
-  els.preview.hidden = false;
-  const isError = preview.ok === false;
-  els.preview.classList.toggle('is-error', isError);
-
-  if (isError) {
-    els.previewExpression.textContent = '';
-    els.previewExpression.hidden = true;
-    els.previewLabel.hidden = true;
-    els.previewValue.textContent = preview.message;
+  // An error is reported in the same place the answer would appear.
+  if (message) {
+    els.preview.hidden = false;
+    els.preview.classList.add('is-error');
+    els.previewValue.textContent = message;
     lastPreviewValue = null;
     return;
   }
 
-  els.previewExpression.hidden = false;
-  els.previewLabel.hidden = false;
-  els.previewExpression.textContent = preview.expression;
+  if (!preview) {
+    els.preview.hidden = false;
+    els.preview.classList.add('is-error');
+    els.previewValue.textContent = snapshot.errorMessage;
+    lastPreviewValue = null;
+    return;
+  }
+
+  els.preview.hidden = false;
+  els.preview.classList.remove('is-error');
   els.previewValue.textContent = preview.value;
 
   if (lastPreviewValue !== null && lastPreviewValue !== preview.value) {
@@ -291,19 +352,42 @@ function attachKeypad(section) {
  * History
  * ------------------------------------------------------------------------ */
 
-function loadHistory() {
+function readStoredHistory(key) {
   try {
-    const stored = window.localStorage.getItem(HISTORY_KEY);
-    if (!stored) return;
+    const stored = window.localStorage.getItem(key);
+    if (!stored) return null;
     const parsed = JSON.parse(stored);
-    if (Array.isArray(parsed)) {
-      history = parsed
-        .filter((item) => item && typeof item.expression === 'string')
-        .slice(0, HISTORY_LIMIT);
-    }
+    if (!Array.isArray(parsed)) return null;
+    return parsed
+      .filter((item) => item && typeof item.expression === 'string')
+      .slice(0, HISTORY_LIMIT);
   } catch {
-    history = [];
+    return null;
   }
+}
+
+function loadHistory() {
+  const current = readStoredHistory(HISTORY_KEY);
+  if (current) {
+    history = current;
+    return;
+  }
+
+  // First start after the rename: keep the history that was saved under the
+  // name the app used before.
+  const legacy = readStoredHistory(LEGACY_HISTORY_KEY);
+  if (legacy) {
+    history = legacy;
+    saveHistory();
+    try {
+      window.localStorage.removeItem(LEGACY_HISTORY_KEY);
+    } catch {
+      /* nothing to clean up */
+    }
+    return;
+  }
+
+  history = [];
 }
 
 function saveHistory() {
@@ -374,15 +458,22 @@ const panels = {
     sheet: els.historySheet,
     backdrop: els.historyBackdrop,
     close: els.historyClose,
-    trigger: els.historyBtn,
+    trigger: els.menuBtn,
     handles: [els.historyHandle, els.historyHeader],
   },
-  about: {
-    sheet: els.aboutSheet,
-    backdrop: els.aboutBackdrop,
-    close: els.aboutClose,
-    trigger: els.aboutBtn,
-    handles: [els.aboutHandle, els.aboutHeader],
+  settings: {
+    sheet: els.settingsSheet,
+    backdrop: els.settingsBackdrop,
+    close: els.settingsClose,
+    trigger: els.menuBtn,
+    handles: [els.settingsHandle, els.settingsHeader],
+  },
+  modes: {
+    sheet: els.modesSheet,
+    backdrop: els.modesBackdrop,
+    close: els.modesClose,
+    trigger: els.modesBtn,
+    handles: [els.modesHandle, els.modesHeader],
   },
 };
 
@@ -507,9 +598,15 @@ function attachKeyboard() {
   document.addEventListener('keydown', (event) => {
     if (event.ctrlKey || event.metaKey || event.altKey) return;
 
-    if (event.key === 'Escape' && openPanelName) {
-      closePanel(openPanelName);
-      return;
+    if (event.key === 'Escape') {
+      if (openMenuName) {
+        closeMenus();
+        return;
+      }
+      if (openPanelName) {
+        closePanel(openPanelName);
+        return;
+      }
     }
 
     const mapped = KEY_MAP[event.key];
@@ -521,13 +618,129 @@ function attachKeyboard() {
   });
 }
 
-function attachExtraKeysToggle() {
-  els.scientificBtn.addEventListener('click', () => {
-    const willShow = els.extraKeys.hidden;
-    els.extraKeys.hidden = !willShow;
-    els.scientificBtn.setAttribute('aria-pressed', willShow ? 'true' : 'false');
-    keyFeedback();
+/* --------------------------------------------------------------------------
+ * Calculator mode (two arrows button, mode chip and the mode menu)
+ * ------------------------------------------------------------------------ */
+
+let calculatorMode = 'standard';
+
+function setCalculatorMode(next, { feedback = true } = {}) {
+  const wanted = MODES[next]?.available ? next : 'standard';
+  calculatorMode = wanted;
+  const isScientific = wanted === 'scientific';
+
+  els.extraKeys.hidden = !isScientific;
+  els.scientificBtn.setAttribute('aria-pressed', isScientific ? 'true' : 'false');
+  els.app.classList.toggle('is-scientific', isScientific);
+
+  for (const tile of els.modeGrid.querySelectorAll('[data-mode]')) {
+    tile.setAttribute('aria-pressed', tile.getAttribute('data-mode') === wanted ? 'true' : 'false');
+  }
+
+  if (feedback) keyFeedback();
+}
+
+function toggleScientific() {
+  setCalculatorMode(calculatorMode === 'scientific' ? 'standard' : 'scientific');
+}
+
+/* --------------------------------------------------------------------------
+ * Three dot menu (History and Settings)
+ * ------------------------------------------------------------------------ */
+
+let openMenuName = null;
+
+const menus = () => ({
+  app: { menu: els.appMenu, trigger: els.menuBtn },
+});
+
+function openMenu(name) {
+  const entry = menus()[name];
+  if (!entry) return;
+  closeMenus();
+  openMenuName = name;
+  entry.menu.hidden = false;
+  entry.trigger.setAttribute('aria-expanded', 'true');
+  requestAnimationFrame(() => entry.menu.classList.add('is-open'));
+}
+
+function closeMenus() {
+  if (!openMenuName) return;
+  const entry = menus()[openMenuName];
+  openMenuName = null;
+  if (!entry) return;
+  entry.menu.classList.remove('is-open');
+  entry.trigger.setAttribute('aria-expanded', 'false');
+  window.setTimeout(() => {
+    if (openMenuName === null) entry.menu.hidden = true;
+  }, 140);
+}
+
+function toggleMenu(name) {
+  if (openMenuName === name) {
+    closeMenus();
+    return;
+  }
+  openMenu(name);
+  keyFeedback();
+}
+
+function attachMenus() {
+  els.menuBtn.addEventListener('click', () => toggleMenu('app'));
+
+  els.menuHistory.addEventListener('click', () => {
+    closeMenus();
+    openPanel('history');
   });
+
+  els.menuSettings.addEventListener('click', () => {
+    closeMenus();
+    showSettingsPage('root');
+    openPanel('settings');
+    els.updateBadge.hidden = true;
+  });
+
+  document.addEventListener('pointerdown', (event) => {
+    if (!openMenuName) return;
+    const entry = menus()[openMenuName];
+    if (entry.menu.contains(event.target) || entry.trigger.contains(event.target)) return;
+    closeMenus();
+  });
+}
+
+/* --------------------------------------------------------------------------
+ * Settings pages (settings root, about, privacy)
+ * ------------------------------------------------------------------------ */
+
+const SETTINGS_PAGES = {
+  root: { title: 'Settings' },
+  about: { title: 'About CalcS' },
+  privacy: { title: 'Privacy note' },
+};
+
+function showSettingsPage(name) {
+  for (const key of Object.keys(SETTINGS_PAGES)) {
+    const page = { root: els.settingsRoot, about: els.settingsAbout, privacy: els.settingsPrivacy }[key];
+    if (page) page.hidden = key !== name;
+  }
+  els.settingsBack.hidden = name === 'root';
+  els.settingsTitle.textContent = SETTINGS_PAGES[name]?.title || 'Settings';
+  if (els.settingsList) els.settingsList.scrollTop = 0;
+}
+
+/* --------------------------------------------------------------------------
+ * Floating window (Android picture in picture)
+ * ------------------------------------------------------------------------ */
+
+async function openFloatingWindow() {
+  const supported = await isFloatingWindowSupported();
+  if (!supported) {
+    showSnackbar('A floating window needs Android 8 or newer');
+    return;
+  }
+  const result = await enterFloatingWindow();
+  keyFeedback();
+  if (!result.entered) showSnackbar('Could not open the floating window');
 }
 
 function renderBuildLabel() {
@@ -537,6 +750,19 @@ function renderBuildLabel() {
   const repo = normalizeRepository(buildInfo.repository);
   if (repo) parts.push(repo);
   els.buildLabel.textContent = parts.join(' \u00b7 ');
+}
+
+function renderBrand() {
+  const name = buildInfo.name || 'CalcS';
+  if (els.brandLabel) els.brandLabel.textContent = name;
+  if (els.versionApp) els.versionApp.textContent = name;
+  document.title = name;
+}
+
+function renderRepoLink() {
+  const repo = normalizeRepository(buildInfo.repository);
+  if (!els.repoLink) return;
+  els.repoLink.href = repo ? `https://github.com/${repo}` : 'https://github.com/';
 }
 
 async function loadBuildInfo() {
@@ -557,6 +783,22 @@ async function loadBuildInfo() {
   }
 }
 
+/**
+ * The version shown in Settings is the one installed on this phone. Inside the
+ * Android app that value comes from the package manager, so it stays right even
+ * if the web bundle and the installed APK were built at different times.
+ */
+async function loadInstalledVersion() {
+  const info = await getAppInfo();
+  if (info?.version && parseVersion(info.version)) {
+    buildInfo.version = info.version;
+  }
+}
+
+function parseVersion(value) {
+  return /^\d+(\.\d+){0,2}$/.test(String(value || '').trim());
+}
+
 const updater = createUpdater({
   elements: els,
   getVersion: () => buildInfo.version,
@@ -567,7 +809,7 @@ const updater = createUpdater({
     els.updateBadge.hidden = false;
     if (!updateSeen) {
       updateSeen = true;
-      showSnackbar('A new version of Calcivo is available');
+      showSnackbar('A new version of CalcS is available');
     }
   },
 });
@@ -576,16 +818,37 @@ function boot() {
   loadHistory();
   renderHistory();
   render();
+  setCalculatorMode('standard', { feedback: false });
 
   attachKeypad(els.keypad);
   attachKeypad(els.extraKeys);
   attachKeyboard();
-  attachExtraKeysToggle();
+  attachMenus();
+
+  els.scientificBtn.addEventListener('click', () => toggleScientific());
+  els.floatingBtn.addEventListener('click', () => openFloatingWindow());
+  els.signBtn.addEventListener('click', () => runAction('sign'));
+
+  els.modesBtn.addEventListener('click', () => {
+    if (openPanelName === 'modes') closePanel('modes');
+    else openPanel('modes');
+    keyFeedback();
+  });
+  els.modeGrid.addEventListener('click', (event) => {
+    const tile = event.target.closest('[data-mode]');
+    if (!tile) return;
+    setCalculatorMode(tile.getAttribute('data-mode'));
+    closePanel('modes');
+  });
+  els.modesClose.addEventListener('click', () => closePanel('modes'));
+  els.modesBackdrop.addEventListener('click', () => closePanel('modes'));
+
+  // While the app floats above another app it gets a compact layout.
+  onFloatingWindowChange((active) => els.app.classList.toggle('is-floating', active));
 
   attachLongPress(els.entry, copyCurrentValue);
   els.entry.addEventListener('click', () => keyFeedback());
 
-  els.historyBtn.addEventListener('click', () => openPanel('history'));
   els.historyClose.addEventListener('click', () => closePanel('history'));
   els.historyBackdrop.addEventListener('click', () => closePanel('history'));
   els.historyClear.addEventListener('click', () => {
@@ -595,20 +858,37 @@ function boot() {
     keyFeedback();
   });
 
-  els.aboutBtn.addEventListener('click', () => {
-    openPanel('about');
-    els.updateBadge.hidden = true;
+  els.settingsClose.addEventListener('click', () => closePanel('settings'));
+  els.settingsBackdrop.addEventListener('click', () => closePanel('settings'));
+  els.settingsBack.addEventListener('click', () => {
+    showSettingsPage('root');
+    keyFeedback();
   });
-  els.aboutClose.addEventListener('click', () => closePanel('about'));
-  els.aboutBackdrop.addEventListener('click', () => closePanel('about'));
+  els.openAbout.addEventListener('click', () => {
+    showSettingsPage('about');
+    keyFeedback();
+  });
+  els.openPrivacy.addEventListener('click', () => {
+    showSettingsPage('privacy');
+    keyFeedback();
+  });
 
   attachSheetDrag('history');
-  attachSheetDrag('about');
+  attachSheetDrag('settings');
+  attachSheetDrag('modes');
 
   document.addEventListener('gesturestart', (event) => event.preventDefault());
   document.addEventListener('dblclick', (event) => event.preventDefault());
 
   registerBackButton(() => {
+    if (openMenuName) {
+      closeMenus();
+      return true;
+    }
+    if (openPanelName === 'settings' && els.settingsBack.hidden === false) {
+      showSettingsPage('root');
+      return true;
+    }
     if (openPanelName) {
       closePanel(openPanelName);
       return true;
@@ -620,7 +900,9 @@ function boot() {
   updater.renderFeatures();
   updater.render();
 
-  loadBuildInfo().then(() => {
+  Promise.all([loadBuildInfo(), loadInstalledVersion()]).then(() => {
+    renderBrand();
+    renderRepoLink();
     renderBuildLabel();
     updater.render();
     // Silent check a moment after the first screen so the start stays instant.
@@ -628,8 +910,22 @@ function boot() {
   });
 
   // Debug handle, only created when a page opts in (used by the DOM tests).
-  if (window.__CALCIVO_TEST__) {
-    window.__calcivo = { calculator, render, updater, buildInfo, openPanel, closePanel };
+  if (window.__CALCS_TEST__) {
+    window.__calcs = {
+      calculator,
+      render,
+      updater,
+      buildInfo,
+      openPanel,
+      closePanel,
+      openMenu,
+      closeMenus,
+      setCalculatorMode,
+      showSettingsPage,
+      get mode() {
+        return calculatorMode;
+      },
+    };
   }
 }
 

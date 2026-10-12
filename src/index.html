@@ -14,9 +14,9 @@
   <meta name="format-detection" content="telephone=no" />
   <meta
     name="description"
-    content="Calcivo - a full screen calculator with a live result preview, history and in-app updates."
+    content="CalcS - a full screen calculator with a live result preview, history and in-app updates."
   />
-  <title>Calcivo</title>
+  <title>CalcS</title>
   <link rel="icon" href="icons/favicon.png" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <link rel="manifest" href="manifest.webmanifest" />
@@ -24,72 +24,131 @@
 </head>
 <body>
   <div class="app">
-    <!-- Top app bar -->
+    <!--
+      Top app bar, in the order the design asks for:
+        floating window | scientific | calculator mode            three dot menu
+      The three dot menu holds History and Settings; the version and the update
+      check live inside Settings.
+    -->
     <header class="app-bar">
-      <div class="app-bar__brand">
-        <span class="app-bar__logo" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"
-               stroke-linecap="round" stroke-linejoin="round">
-            <rect x="4" y="2.6" width="16" height="18.8" rx="4.4" />
-            <rect x="7.4" y="6" width="9.2" height="3.1" rx="1.3" fill="currentColor" stroke="none" />
-            <circle cx="8.6" cy="13" r="1.05" fill="currentColor" stroke="none" />
-            <circle cx="12" cy="13" r="1.05" fill="currentColor" stroke="none" />
-            <circle cx="15.4" cy="13" r="1.05" fill="currentColor" stroke="none" />
-            <circle cx="8.6" cy="17.4" r="1.05" fill="currentColor" stroke="none" />
-            <circle cx="12" cy="17.4" r="1.05" fill="currentColor" stroke="none" />
-            <circle cx="15.4" cy="17.4" r="1.05" fill="currentColor" stroke="none" />
+      <!-- Far left: hand the app to the floating window -->
+      <button
+        type="button"
+        class="icon-btn"
+        id="floating-btn"
+        aria-label="Open in a floating window"
+        title="Floating window"
+      >
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+          <path d="M21 3v8h-2V6.41l-4.29 4.3-1.42-1.42L17.59 5H13V3h8zm-18 18v-8h2v4.59l4.29-4.3 1.42 1.42L6.41 19H11v2H3z" />
+        </svg>
+      </button>
+
+      <div class="app-bar__group">
+        <button type="button" class="icon-btn" id="sign-btn" aria-label="Toggle sign" title="Plus minus">
+          <svg viewBox="0 0 24 24" width="21" height="21" fill="currentColor" aria-hidden="true">
+            <path d="M5 11h6V5h2v6h6v2h-6v6h-2v-6H5v-2z" />
+            <path d="M15 19h6v2h-6z" />
           </svg>
-        </span>
-        <h1 class="app-bar__title">Calcivo</h1>
-      </div>
-      <div class="app-bar__actions">
+        </button>
+
         <button
           type="button"
           class="icon-btn"
           id="scientific-btn"
           aria-pressed="false"
-          aria-label="Toggle extra keys"
-          title="Extra keys"
+          aria-label="Scientific keys"
+          title="Scientific"
         >
           <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
             <path d="M18 4H6v2l6.5 6L6 18v2h12v-3h-2v1H10.31L14 13.19 10.31 8H16v1h2V4z" />
           </svg>
         </button>
-        <button type="button" class="icon-btn" id="history-btn" aria-label="Open history" title="History">
+
+        <button
+          type="button"
+          class="icon-btn"
+          id="modes-btn"
+          aria-haspopup="dialog"
+          aria-label="Calculator mode"
+          title="Calculator mode"
+        >
           <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
-            <path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z" />
+            <path
+              d="M4 3h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm10 0h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM4 13h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1zm10 0h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1z"
+            />
           </svg>
         </button>
-        <button type="button" class="icon-btn" id="about-btn" aria-label="About and updates" title="About">
+
+        <button
+          type="button"
+          class="icon-btn"
+          id="menu-btn"
+          aria-haspopup="menu"
+          aria-expanded="false"
+          aria-label="More options"
+          title="More"
+        >
           <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
-            <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+            <path
+              d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
+            />
           </svg>
           <span class="icon-btn__badge" id="update-badge" hidden aria-hidden="true"></span>
         </button>
       </div>
+
+      <!-- Three dot menu: History and Settings -->
+      <div class="menu" id="app-menu" role="menu" aria-label="More options" hidden>
+        <button type="button" class="menu__item" id="menu-history" role="menuitem">
+          <span class="menu__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path
+                d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"
+              />
+            </svg>
+          </span>
+          <span class="menu__item-text">History</span>
+        </button>
+        <div class="menu__divider" role="separator"></div>
+        <button type="button" class="menu__item" id="menu-settings" role="menuitem">
+          <span class="menu__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path
+                d="M19.14 12.94a7.5 7.5 0 0 0 0-1.88l2.03-1.58-1.93-3.34-2.4.97a7.3 7.3 0 0 0-1.62-.94l-.36-2.55H10.6l-.36 2.55c-.58.24-1.12.55-1.62.94l-2.4-.97-1.93 3.34 2.03 1.58a7.5 7.5 0 0 0 0 1.88l-2.03 1.58 1.93 3.34 2.4-.97c.5.39 1.04.7 1.62.94l.36 2.55h4.26l.36-2.55c.58-.24 1.12-.55 1.62-.94l2.4.97 1.93-3.34-2.03-1.58zM12.73 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"
+              />
+            </svg>
+          </span>
+          <span class="menu__item-text">Settings</span>
+        </button>
+      </div>
     </header>
 
-    <!-- Display -->
+    <!-- Display: the whole expression stays big, the answer appears under it -->
     <section class="display" id="display" aria-live="polite">
-      <div class="display__expression" id="expression">&nbsp;</div>
+      <div class="display__top">
+        <p class="display__brand" id="brand-label">CalcS</p>
+        <div class="display__expression" id="expression"></div>
+      </div>
 
-      <button
-        type="button"
-        class="display__entry"
-        id="entry"
-        title="Long press to copy"
-        aria-label="Current value, long press to copy"
-      >0</button>
+      <div class="display__line">
+        <button
+          type="button"
+          class="display__entry"
+          id="entry"
+          title="Long press to copy"
+          aria-label="Expression, long press to copy the value"
+        >0</button>
+        <span class="display__caret" id="caret" aria-hidden="true" hidden></span>
+      </div>
 
-      <!-- Live preview: shows the result before equals is pressed -->
+      <!-- Live preview: the running answer, shown before equals is pressed -->
       <div class="preview" id="preview" hidden>
-        <span class="preview__expression" id="preview-expression"></span>
-        <span class="preview__label" id="preview-label">=</span>
         <span class="preview__value" id="preview-value"></span>
       </div>
     </section>
 
-    <!-- Extra keys (collapsed by default) -->
+    <!-- Extra keys (collapsed by default, shown by the scientific mode) -->
     <section class="extra-keys" id="extra-keys" hidden aria-label="Extra keys">
       <button type="button" class="btn btn--extra" data-action="paren" data-value="(" data-key="(">(</button>
       <button type="button" class="btn btn--extra" data-action="paren" data-value=")" data-key=")">)</button>
@@ -102,6 +161,7 @@
     <!-- Keypad -->
     <section class="keypad" id="keypad" aria-label="Calculator keypad">
       <button type="button" class="btn btn--util" data-action="clear" data-key="Escape">AC</button>
+      <button type="button" class="btn btn--util" data-action="percent" data-key="%">%</button>
       <button
         type="button"
         class="btn btn--util"
@@ -113,7 +173,6 @@
           <path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-3 12.59L17.59 17 14 13.41 10.41 17 9 15.59 12.59 12 9 8.41 10.41 7 14 10.59 17.59 7 19 8.41 15.41 12 19 15.59z" />
         </svg>
       </button>
-      <button type="button" class="btn btn--util" data-action="percent" data-key="%">%</button>
       <button type="button" class="btn btn--op" data-action="operator" data-value="/" data-key="/" aria-label="Divide">&divide;</button>
 
       <button type="button" class="btn btn--num" data-action="digit" data-value="7" data-key="7">7</button>
@@ -131,7 +190,7 @@
       <button type="button" class="btn btn--num" data-action="digit" data-value="3" data-key="3">3</button>
       <button type="button" class="btn btn--op" data-action="operator" data-value="+" data-key="+" aria-label="Add">+</button>
 
-      <button type="button" class="btn btn--num" data-action="sign" data-key="n" aria-label="Toggle sign">+/&minus;</button>
+      <button type="button" class="btn btn--num" data-action="double-zero" aria-label="Double zero">00</button>
       <button type="button" class="btn btn--num" data-action="digit" data-value="0" data-key="0">0</button>
       <button type="button" class="btn btn--num" data-action="decimal" data-value="." data-key=".">.</button>
       <button type="button" class="btn btn--equals" data-action="equals" data-key="Enter" aria-label="Equals">=</button>
@@ -160,13 +219,13 @@
     </footer>
   </aside>
 
-  <!-- About and updates bottom sheet -->
-  <div class="sheet-backdrop" id="about-backdrop" hidden></div>
-  <aside class="sheet sheet--about" id="about-sheet" aria-label="About Calcivo" aria-hidden="true">
-    <div class="sheet__handle" id="about-handle" aria-hidden="true"></div>
+  <!-- Mode picker: the tiles the mode button in the app bar opens -->
+  <div class="sheet-backdrop" id="modes-backdrop" hidden></div>
+  <aside class="sheet sheet--modes" id="modes-sheet" aria-label="Calculator mode" aria-hidden="true">
+    <div class="sheet__handle" id="modes-handle" aria-hidden="true"></div>
     <header class="sheet__header">
-      <h2 class="sheet__title">About</h2>
-      <button type="button" class="icon-btn" id="about-close" aria-label="Close about" title="Close">
+      <h2 class="sheet__title">Calculator mode</h2>
+      <button type="button" class="icon-btn" id="modes-close" aria-label="Close modes" title="Close">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
           <path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
         </svg>
@@ -174,59 +233,198 @@
     </header>
 
     <div class="sheet__list">
-      <section class="brand-card">
-        <span class="brand-card__logo" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.7"
-               stroke-linecap="round" stroke-linejoin="round">
-            <rect x="4" y="2.6" width="16" height="18.8" rx="4.4" />
-            <rect x="7.4" y="6" width="9.2" height="3.1" rx="1.3" fill="currentColor" stroke="none" />
-            <circle cx="8.6" cy="13" r="1.05" fill="currentColor" stroke="none" />
-            <circle cx="12" cy="13" r="1.05" fill="currentColor" stroke="none" />
-            <circle cx="15.4" cy="13" r="1.05" fill="currentColor" stroke="none" />
-            <circle cx="8.6" cy="17.4" r="1.05" fill="currentColor" stroke="none" />
-            <circle cx="12" cy="17.4" r="1.05" fill="currentColor" stroke="none" />
-            <circle cx="15.4" cy="17.4" r="1.05" fill="currentColor" stroke="none" />
-          </svg>
-        </span>
-        <div class="brand-card__text">
-          <p class="brand-card__name">Calcivo</p>
-          <p class="brand-card__version">Version <span id="about-version">1.0</span></p>
-        </div>
-      </section>
+      <div class="mode-grid" id="mode-grid">
+        <button type="button" class="mode-tile" data-mode="standard" aria-pressed="true">
+          <span class="mode-tile__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+              <path
+                d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 2v16h12V4H6zm2 2h8v3H8V6zm0 5h3v3H8v-3zm5 0h3v3h-3v-3zm-5 5h3v3H8v-3zm5 0h3v3h-3v-3z"
+              />
+            </svg>
+          </span>
+          <span class="mode-tile__label">Standard</span>
+        </button>
 
-      <section class="update-card" id="update-card">
-        <header class="update-card__header">
-          <span class="update-card__icon" id="update-icon" aria-hidden="true"></span>
-          <div class="update-card__text">
-            <p class="update-card__title" id="update-title">Updates</p>
-            <p class="update-card__status" id="update-status">Tap check to look for a new version.</p>
-          </div>
-        </header>
+        <button type="button" class="mode-tile" data-mode="scientific" aria-pressed="false">
+          <span class="mode-tile__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+              <path d="M18 4H6v2l6.5 6L6 18v2h12v-3h-2v1H10.31L14 13.19 10.31 8H16v1h2V4z" />
+            </svg>
+          </span>
+          <span class="mode-tile__label">Scientific</span>
+        </button>
 
-        <div class="update-card__progress" id="update-progress" hidden>
-          <div class="progress" role="progressbar" aria-labelledby="update-status">
-            <span class="progress__bar" id="progress-bar"></span>
-          </div>
-          <p class="update-card__meta" id="update-meta"></p>
-        </div>
+        <button type="button" class="mode-tile is-soon" disabled>
+          <span class="mode-tile__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+              <path d="M7 7h11l-4-4 1.4-1.4L21.8 8l-6.4 6.4L14 13l4-4H7V7zm10 10H6l4 4-1.4 1.4L2.2 16l6.4-6.4L10 11l-4 4h11v2z" />
+            </svg>
+          </span>
+          <span class="mode-tile__label">Unit converter</span>
+          <span class="mode-tile__soon">Soon</span>
+        </button>
 
-        <p class="update-card__notes" id="update-notes" hidden></p>
+        <button type="button" class="mode-tile is-soon" disabled>
+          <span class="mode-tile__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+              <path
+                d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1.5 15.4v1.1h-2v-1.1a4.6 4.6 0 0 1-1.9-.6l.5-1.9c.5.3 1.2.6 1.9.6.7 0 1.2-.3 1.2-.8 0-.4-.3-.7-1.3-1-1.5-.5-2.4-1.1-2.4-2.4 0-1.1.8-2 2-2.3V8.5h2v1.1c.7.1 1.3.3 1.8.6l-.5 1.9c-.5-.3-1-.5-1.7-.5-.7 0-1.1.3-1.1.7 0 .4.4.6 1.4 1 1.5.5 2.4 1.1 2.4 2.4 0 1.2-.9 2.2-2.3 2.5z"
+              />
+            </svg>
+          </span>
+          <span class="mode-tile__label">Currency</span>
+          <span class="mode-tile__soon">Soon</span>
+        </button>
 
-        <footer class="update-card__actions">
-          <button type="button" class="filled-btn" id="update-primary">Check for updates</button>
-          <button type="button" class="text-btn" id="update-secondary" hidden>Cancel</button>
-        </footer>
-      </section>
+        <button type="button" class="mode-tile is-soon" disabled>
+          <span class="mode-tile__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+              <path d="M5 9h3v11H5V9zm5-6h3v17h-3V3zm5 8h3v9h-3v-9zM3 21h18v-1.5H3V21z" />
+            </svg>
+          </span>
+          <span class="mode-tile__label">Graph</span>
+          <span class="mode-tile__soon">Soon</span>
+        </button>
+      </div>
 
-      <section class="about-section">
-        <h3 class="about-section__title">New features coming soon</h3>
-        <ul class="feature-list" id="feature-list"></ul>
-      </section>
-
-      <p class="about-note">
-        Calculate offline, always. Calcivo keeps your history on this device and only contacts GitHub when it
-        looks for an update.
+      <p class="mode-note" id="mode-note">
+        Standard and Scientific work today. The other modes are on the way and will arrive in an
+        update.
       </p>
+    </div>
+  </aside>
+
+  <!-- Settings bottom sheet: version + update check, about and the privacy note -->
+  <div class="sheet-backdrop" id="settings-backdrop" hidden></div>
+  <aside class="sheet sheet--settings" id="settings-sheet" aria-label="Settings" aria-hidden="true">
+    <div class="sheet__handle" id="settings-handle" aria-hidden="true"></div>
+    <header class="sheet__header">
+      <button
+        type="button"
+        class="icon-btn"
+        id="settings-back"
+        aria-label="Back to settings"
+        title="Back"
+        hidden
+      >
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+          <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+        </svg>
+      </button>
+      <h2 class="sheet__title" id="settings-title">Settings</h2>
+      <button type="button" class="icon-btn" id="settings-close" aria-label="Close settings" title="Close">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true">
+          <path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+        </svg>
+      </button>
+    </header>
+
+    <div class="sheet__list">
+      <!-- Settings root -->
+      <section class="settings-page" id="settings-root">
+        <section class="update-card" id="update-card">
+          <div class="version-row">
+            <div class="version-row__text">
+              <p class="version-row__app" id="version-app">CalcS</p>
+              <p class="version-row__value">Version <span id="about-version">1.0</span></p>
+            </div>
+            <button type="button" class="filled-btn" id="update-primary">Check for Update</button>
+          </div>
+
+          <div class="update-status">
+            <span class="update-card__icon" id="update-icon" aria-hidden="true"></span>
+            <div class="update-card__text">
+              <p class="update-card__title" id="update-title">Updates</p>
+              <p class="update-card__status" id="update-status">
+                Tap Check for Update to look for a newer version.
+              </p>
+            </div>
+          </div>
+
+          <!-- The space under the version row: update progress and size land here -->
+          <div class="update-card__progress" id="update-progress" hidden>
+            <div class="progress" role="progressbar" aria-labelledby="update-status">
+              <span class="progress__bar" id="progress-bar"></span>
+            </div>
+            <p class="update-card__meta" id="update-meta"></p>
+          </div>
+
+          <p class="update-card__notes" id="update-notes" hidden></p>
+
+          <footer class="update-card__actions">
+            <button type="button" class="text-btn" id="update-secondary" hidden>Cancel</button>
+          </footer>
+        </section>
+
+        <button type="button" class="list-item" id="open-about">
+          <span class="list-item__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+            </svg>
+          </span>
+          <span class="list-item__text">
+            <span class="list-item__title">About CalcS</span>
+            <span class="list-item__sub">Open source, licence and the repository</span>
+          </span>
+          <span class="list-item__chevron" aria-hidden="true">&rsaquo;</span>
+        </button>
+
+        <button type="button" class="list-item" id="open-privacy">
+          <span class="list-item__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path d="M12 1 3 5v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V5l-9-4zm7 10c0 4.1-2.6 7.8-7 8.9V12H5V6.3l7-3.1V11h7v.01z" />
+            </svg>
+          </span>
+          <span class="list-item__text">
+            <span class="list-item__title">Privacy note</span>
+            <span class="list-item__sub">What the app does with your data</span>
+          </span>
+          <span class="list-item__chevron" aria-hidden="true">&rsaquo;</span>
+        </button>
+      </section>
+
+      <!-- About page -->
+      <section class="settings-page" id="settings-about" hidden>
+        <article class="prose-card">
+          <h3 class="prose-card__title">About CalcS</h3>
+          <p>
+            CalcS is a small, open source calculator. It shows the answer while you type, keeps your
+            last results to hand and installs its own updates.
+          </p>
+          <p>
+            The whole project - source, every release and the issue tracker - lives on GitHub. Read
+            it, build it, fork it: the code is published under the MIT licence.
+          </p>
+          <p>
+            Built with Capacitor and a hand written expression engine. No ads, no accounts, no
+            tracking, and no third party analytics of any kind.
+          </p>
+          <a class="filled-btn prose-card__link" id="repo-link" href="https://github.com/" target="_blank" rel="noopener">
+            Open the repository
+          </a>
+        </article>
+
+        <section class="about-section">
+          <h3 class="about-section__title">New features coming soon</h3>
+          <ul class="feature-list" id="feature-list"></ul>
+        </section>
+      </section>
+
+      <!-- Privacy page -->
+      <section class="settings-page" id="settings-privacy" hidden>
+        <article class="prose-card">
+          <h3 class="prose-card__title">Privacy note</h3>
+          <p>CalcS does not collect anything. There is no account, no analytics, no ads and no tracking.</p>
+          <p>
+            Your calculations and your history are stored on this phone only, and they are removed
+            with the app.
+          </p>
+          <p>
+            The one time the app goes online is when it checks GitHub for a newer version, and later
+            downloads it. Nothing about you is sent with that request.
+          </p>
+        </article>
+      </section>
     </div>
 
     <footer class="sheet__footer">

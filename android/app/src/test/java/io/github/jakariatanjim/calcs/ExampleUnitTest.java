@@ -1,4 +1,4 @@
-package io.github.jakariatanjim.calcivo;
+package io.github.jakariatanjim.calcs;
 
 import static org.junit.Assert.assertEquals;
 

@@ -17,6 +17,7 @@
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
             android:screenOrientation="portrait"
+            android:supportsPictureInPicture="true"
             android:exported="true">
 
             <intent-filter>
@@ -42,6 +43,6 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Key press haptics -->
     <uses-permission android:name="android.permission.VIBRATE" />
-    <!-- In-app updates: lets Calcivo hand a downloaded release to the system installer -->
+    <!-- In-app updates: lets CalcS hand a downloaded release to the system installer -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 </manifest>

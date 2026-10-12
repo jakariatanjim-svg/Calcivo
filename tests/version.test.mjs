@@ -80,9 +80,9 @@ test('compareVersions and isNewerVersion compare numerically', () => {
 });
 
 test('nextVersion continues from version.json', () => {
-  const directory = mkdtempSync(path.join(tmpdir(), 'calcivo-version-'));
+  const directory = mkdtempSync(path.join(tmpdir(), 'calcs-version-'));
   const file = path.join(directory, 'version.json');
-  writeFileSync(file, JSON.stringify({ name: 'Calcivo', version: '1.4' }));
+  writeFileSync(file, JSON.stringify({ name: 'CalcS', version: '1.4' }));
   const info = readVersionInfo(file);
   assert.equal(nextVersion({ info }), '1.5');
 
@@ -91,7 +91,7 @@ test('nextVersion continues from version.json', () => {
 });
 
 test('nextVersion starts at 1.0 when nothing has been released yet', () => {
-  assert.equal(nextVersion({ info: { name: 'Calcivo', version: '1.0' } }), '1.1');
+  assert.equal(nextVersion({ info: { name: 'CalcS', version: '1.0' } }), '1.1');
   assert.equal(bumpVersion('0.9'), '1.0');
 });
 
@@ -124,7 +124,7 @@ test('the CLI prints the next version and matches the version code helper', () =
 
 test('the shipped version.json carries a compact two digit version', () => {
   const stored = readVersionInfo();
-  assert.equal(stored.name, 'Calcivo');
+  assert.equal(stored.name, 'CalcS');
   assert.equal(parseVersion(stored.version).length, 3);
   assert.equal(stored.version.split('.').length, 2);
 });

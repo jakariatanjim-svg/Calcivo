@@ -1,22 +1,31 @@
 #!/usr/bin/env bash
 #
-# Builds an installable Calcivo APK on this machine.
+# Builds an installable CalcS APK on this machine.
 #
-#   npm run apk              developer APK
+#   npm run apk              developer APK (for testing, keeps the version)
 #   npm run apk:release      release APK (release signed when a keystore is set)
 #
-# The version is read from version.json and every build takes the next one in
-# the sequence (1.0, 1.1, 1.2, ... 1.9, 2.0), so no two builds share a version.
-# GitHub Actions runs the same script and also commits the new version back.
+# One build produces exactly one APK.
+#
+# The version comes from version.json:
+#
+#   * a developer build keeps the version that is already in version.json -
+#     running test builds must never move the release counter, otherwise two
+#     builds (a test and a release) can end up fighting over the same number.
+#   * a release build takes the next version in the sequence
+#     (1.0, 1.1, 1.2, ... 1.9, 2.0) and, with WRITE_VERSION=1, stores it back.
+#
+# GitHub Actions runs the same script; there the release build also commits the
+# new version and publishes the single APK.
 #
 # Environment overrides:
 #   BUILD_VARIANT     developer | release      (default: developer)
-#   VERSION_NAME      explicit version         (default: next version)
+#   VERSION_NAME      explicit version         (default: see above)
 #   VERSION_CODE      numeric version code     (default: derived from the version)
-#   WRITE_VERSION     1 to store the new version in version.json
+#   WRITE_VERSION     1 stores a new release version in version.json
 #   ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
 #
-# Output: dist/Calcivo_<version>_<variant>.apk (+ .sha256)
+# Output: dist/CalcS_<version>_<variant>.apk (+ .sha256)
 
 set -euo pipefail
 
@@ -39,34 +48,47 @@ if [ -z "${ANDROID_HOME:-}" ] && [ -z "${ANDROID_SDK_ROOT:-}" ]; then
 fi
 
 VARIANT="${BUILD_VARIANT:-developer}"
+IS_RELEASE="0"
 case "$VARIANT" in
-  developer) TASK="assembleDeveloper" ;;
-  release) TASK="assembleRelease" ;;
-  *) fail "Unknown BUILD_VARIANT '${VARIANT}' (expected developer or release)." ;;
+  developer)
+    TASK="assembleDeveloper"
+    ;;
+  release)
+    TASK="assembleRelease"
+    IS_RELEASE="1"
+    ;;
+  *)
+    fail "Unknown BUILD_VARIANT '${VARIANT}' (expected developer or release)."
+    ;;
 esac
 
 [ -d node_modules ] || npm ci
 
 if [ -n "${VERSION_NAME:-}" ]; then
   VERSION="$VERSION_NAME"
-else
+elif [ "$IS_RELEASE" = "1" ]; then
+  # A release build owns the version counter.
   if [ "${WRITE_VERSION:-0}" = "1" ]; then
     VERSION="$(node scripts/version.mjs next --write)"
   else
     VERSION="$(node scripts/version.mjs next)"
   fi
+else
+  # Developer builds are for testing on a phone: they never advance the
+  # counter, so they cannot collide with a release build.
+  VERSION="$(node scripts/version.mjs current)"
 fi
 
 VERSION_CODE="${VERSION_CODE:-$(node scripts/version.mjs code "$VERSION")}"
 COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
-APK_FILE="Calcivo_${VERSION}_${VARIANT}.apk"
+APK_FILE="CalcS_${VERSION}_${VARIANT}.apk"
 
 export BUILD_VERSION="$VERSION"
 export BUILD_VARIANT="$VARIANT"
 export BUILD_COMMIT="$COMMIT"
 export BUILD_TIME="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 
-printf '\nBuilding Calcivo\n'
+printf '\nBuilding CalcS\n'
 printf '  version : %s\n' "$VERSION"
 printf '  code    : %s\n' "$VERSION_CODE"
 printf '  variant : %s\n' "$VARIANT"
@@ -103,11 +125,15 @@ fi
 printf 'Using %s\n' "$APK_SOURCE"
 cp "$APK_SOURCE" "dist/${APK_FILE}"
 
+# One build, one APK. The checksum is what the in-app updater verifies.
 if command -v sha256sum >/dev/null 2>&1; then
   (cd dist && sha256sum "$APK_FILE" > "${APK_FILE}.sha256")
-  # Same stable name the release uses, so the updater can verify a local build too.
-  cp "dist/$APK_FILE" "dist/Calcivo-latest.apk"
-  (cd dist && sha256sum "Calcivo-latest.apk" > "Calcivo-latest.apk.sha256")
 fi
 
-printf '\nAPK ready: dist/%s\n\n' "$APK_FILE"
+printf '\nAPK ready: dist/%s\n' "$APK_FILE"
+if [ "$IS_RELEASE" = "1" ]; then
+  printf 'Release version: %s (version.json %s)\n\n' "$VERSION" \
+    "$([ "${WRITE_VERSION:-0}" = "1" ] && echo updated || echo unchanged)"
+else
+  printf 'Developer build: version %s was not advanced.\n\n' "$VERSION"
+fi

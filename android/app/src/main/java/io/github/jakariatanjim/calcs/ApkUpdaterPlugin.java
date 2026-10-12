@@ -1,4 +1,4 @@
-package io.github.jakariatanjim.calcivo;
+package io.github.jakariatanjim.calcs;
 
 import android.content.Intent;
 import android.net.Uri;
@@ -78,7 +78,7 @@ public class ApkUpdaterPlugin extends Plugin {
 
     private static String safeFileName(String name) {
         if (name == null || name.trim().isEmpty()) {
-            return "calcivo-update.apk";
+            return "calcs-update.apk";
         }
         String cleaned = name.replaceAll("[^A-Za-z0-9._-]", "_");
         return cleaned.toLowerCase(Locale.US).endsWith(".apk") ? cleaned : cleaned + ".apk";
@@ -136,7 +136,7 @@ public class ApkUpdaterPlugin extends Plugin {
             call.reject("A download url is required");
             return;
         }
-        final String fileName = safeFileName(call.getString("fileName", "calcivo-update.apk"));
+        final String fileName = safeFileName(call.getString("fileName", "calcs-update.apk"));
 
         if (executor == null || executor.isShutdown()) {
             call.reject("The updater is not ready yet");
@@ -160,7 +160,7 @@ public class ApkUpdaterPlugin extends Plugin {
                     connection.setConnectTimeout(20000);
                     connection.setReadTimeout(30000);
                     connection.setRequestProperty("Accept", "application/octet-stream");
-                    connection.setRequestProperty("User-Agent", "Calcivo-Updater");
+                    connection.setRequestProperty("User-Agent", "CalcS-Updater");
                     connection.connect();
 
                     int status = connection.getResponseCode();

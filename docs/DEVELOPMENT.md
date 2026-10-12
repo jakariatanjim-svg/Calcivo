@@ -1,6 +1,8 @@
-# Calcivo - developer notes
+# CalcS - developer notes
 
-Everything in this document is about building, releasing and extending Calcivo.
+Everything in this document is about building, releasing and extending CalcS
+(the project was called Calcivo before the rename; the Android application id is
+now `io.github.jakariatanjim.calcs`).
 End users only need the [README](../README.md).
 
 ## Requirements
@@ -20,14 +22,15 @@ npm run apk            # developer APK
 npm run apk:release    # release APK (release signed when a keystore is configured)
 ```
 
-Output: `dist/Calcivo_<version>_<variant>.apk` plus a `.sha256` file.
+Output: exactly one APK, `dist/CalcS_<version>_<variant>.apk`, plus its
+`.sha256` checksum. There is no second copy under a different name.
 
 | Environment variable | Default | Meaning |
 | --- | --- | --- |
 | `BUILD_VARIANT` | `developer` | `developer` or `release` |
-| `VERSION_NAME` | next version | explicit version, skips the bump |
+| `VERSION_NAME` | see below | explicit version, skips the bump |
 | `VERSION_CODE` | derived | numeric Android version code |
-| `WRITE_VERSION` | `0` | `1` stores the new version in `version.json` |
+| `WRITE_VERSION` | `0` | with `BUILD_VARIANT=release`: `1` stores the new version in `version.json` |
 | `ANDROID_KEYSTORE_PATH` | - | keystore for release builds |
 | `ANDROID_KEYSTORE_PASSWORD` | - | keystore password |
 | `ANDROID_KEY_ALIAS` | - | key alias |
@@ -72,18 +75,25 @@ npm run version:next  # print the version the next build would carry
 
 ## Version scheme
 
-`version.json` at the root holds the version of the last build, in the compact
-two digit form:
+`version.json` at the root holds the version of the last **release**, in the
+compact two digit form:
 
 ```json
-{ "name": "Calcivo", "version": "1.0" }
+{ "name": "CalcS", "version": "1.0" }
 ```
 
-Every build takes the next version in the sequence, one step at a time:
+Only release builds move that counter. A release takes the next version in the
+sequence, one step at a time:
 
 ```
 1.0 -> 1.1 -> 1.2 -> … -> 1.9 -> 2.0 -> 2.1 -> … -> 9.9 -> 10.0
 ```
+
+Developer builds - the ones used for testing on a phone - keep the version that
+is already in `version.json` and never write it back, so a test run can not
+advance the numbering or collide with a release that is being built at the same
+time. Inside the app the version shown in Settings comes from the installed APK
+(`App.getInfo()`), with `version.json` of the web bundle as the fallback.
 
 Digits roll over at nine, so the version stays short and still increases
 monotonically. `scripts/version.mjs` does the arithmetic, and the same rules are
@@ -116,21 +126,23 @@ runs on demand (`Actions ▸ Build APK ▸ Run workflow`) and does the whole cha
 
 The `variant` input decides what happens to the result:
 
-- **`developer`** (the default) - the APK is uploaded as a workflow artifact
-  only. No tag, no release, no commit: perfect for checking that a build works
-  without publishing anything.
+- **`developer`** (the default) - the version stays as it is and the APK is
+  uploaded as a workflow artifact only. No tag, no release, no commit: perfect
+  for checking that a build works without publishing anything.
 - **`release`**, or any run with a filled-in *Version override* - additionally
   follows the steps below.
-4. The build is tagged `v<version>` (for example `v1.4`), and the moving
-   `latest` tag is force pushed to the same commit.
-5. A release is created with the title `Calcivo <version>`, marked as the latest
-   release, with these assets:
-   - `Calcivo_<version>_<variant>.apk` — this build
-   - `Calcivo-latest.apk` — a copy with a stable name, used by the in-app updater
-   - `Calcivo_<version>_<variant>.apk.sha256` — checksum the app verifies against
+4. The build is tagged `v<version>` (for example `v1.4`).
+5. A release is created with the title `CalcS <version>`, marked as the latest
+   release, and carries exactly two assets:
+   - `CalcS_<version>_<variant>.apk` — this build (the only APK)
+   - `CalcS_<version>_<variant>.apk.sha256` — checksum the app verifies against
+
+   The in-app updater picks the asset whose name matches the release tag, so no
+   second copy under a "latest" name is needed.
 6. `version.json` is committed back and pushed to the branch the workflow ran
-   on, so the next run starts one step higher. A run with a *Version override*
-   skips this, because the version was chosen by hand.
+   on (rebased and retried if another run landed in between), so the next release
+   starts one step higher. A run with a *Version override* skips this, because
+   the version was chosen by hand.
 
 To also build on every push to `main`, uncomment the `push` trigger at the top
 of the workflow.
@@ -143,7 +155,7 @@ installed app, so a stable key matters for the in-app updater.
 - **Recommended** — create a keystore once and add these repository secrets:
 
   ```bash
-  keytool -genkeypair -v -keystore release.keystore -alias calcivo \
+  keytool -genkeypair -v -keystore release.keystore -alias calcs \
     -keyalg RSA -keysize 2048 -validity 10000
   base64 -w0 release.keystore   # -> ANDROID_KEYSTORE_BASE64
   ```
@@ -152,11 +164,11 @@ installed app, so a stable key matters for the in-app updater.
   | --- | --- |
   | `ANDROID_KEYSTORE_BASE64` | `base64 -w0 release.keystore` |
   | `ANDROID_KEYSTORE_PASSWORD` | keystore password |
-  | `ANDROID_KEY_ALIAS` | `calcivo` |
+  | `ANDROID_KEY_ALIAS` | `calcs` |
   | `ANDROID_KEY_PASSWORD` | key password |
 
 - **Fallback** — without the secrets the workflow keeps a generated key in the
-  Actions cache (`calcivo-ci-keystore-v1`) so consecutive builds stay compatible
+  Actions cache (`calcs-ci-keystore-v1`) so consecutive builds stay compatible
   with each other. If that cache is evicted, the next build gets a new key and
   users have to uninstall once before installing.
 
@@ -165,51 +177,80 @@ installed app, so a stable key matters for the in-app updater.
 The update path is fully client side - no server is needed.
 
 ```
-About sheet ─▶ src/js/update.js      GitHub API /repos/:owner/:repo/releases/latest
-            ─▶ comparison with src/js/version.js
-            ─▶ src/js/apk-updater.js  download with progress + checksum
-            ─▶ ApkUpdaterPlugin.java  Android installer (FileProvider)
+Settings ▸ Check for Update ─▶ src/js/update.js   GitHub API /repos/:owner/:repo/releases/latest
+                            ─▶ comparison with src/js/version.js
+                            ─▶ src/js/apk-updater.js   download + progress + checksum
+                            ─▶ ApkUpdaterPlugin.java   Android installer (FileProvider)
 ```
 
-- `src/js/update.js` normalises the repository slug, picks the APK asset,
-  compares versions numerically and returns a status of `update`, `current`,
-  `no-releases`, `disabled` or `error`.
-- `src/js/update-ui.js` is the state machine behind the About sheet:
+- `src/js/update.js` normalises the repository slug, picks the APK asset (the
+  one whose name carries the release version), compares versions numerically and
+  returns a status of `update`, `current`, `no-releases`, `disabled` or `error`.
+- `src/js/update-ui.js` is the state machine behind the update card in Settings:
   `idle -> checking -> available -> downloading -> ready -> installing`, plus the
   `permission`, `error` and `no-releases` branches. It is written against an
   injectable native bridge, which is how `tests/update-ui.test.mjs` drives the
   whole flow without a device.
-- `android/app/src/main/java/io/github/jakariatanjim/calcivo/ApkUpdaterPlugin.java`
+- `android/app/src/main/java/io/github/jakariatanjim/calcs/ApkUpdaterPlugin.java`
   streams the APK on a background thread, emits `downloadProgress` events and
   computes the SHA-256 while downloading. Installing goes through the
   `app.fileprovider` FileProvider, and
   `REQUEST_INSTALL_PACKAGES` is declared in the manifest.
 
 The repository slug is baked into `www/version.json` at build time (from
-`GITHUB_REPOSITORY`, or the git remote locally), so renaming the repository only
-requires updating that value - GitHub keeps redirecting the old slug for old
-installs.
+`GITHUB_REPOSITORY`, or the git remote locally), so the app always talks to the
+repository it was released from; `DEFAULT_REPOSITORY` in `src/js/update.js` is
+only the fallback for a local development build. GitHub keeps redirecting an old
+slug after a repository rename, so builds published before a rename keep finding
+their releases.
+
+## Floating window
+
+```
+App bar ▸ two arrow button ─▶ src/js/floating-window.js
+                           ─▶ FloatingWindowPlugin.java   enterPictureInPictureMode()
+                           ◀─ "floatingWindowChanged" window event
+```
+
+- `FloatingWindowPlugin.isSupported()` answers with the device capability
+  (Android 8 / API 26 and a device that has the picture in picture feature).
+- `enter()` lifts the portrait lock, asks for a phone shaped window
+  (`setAspectRatio(9:16)`) and calls `enterPictureInPictureMode()` on the
+  activity. Everything that can fail is reported back as
+  `{entered: false, reason}` instead of an exception, so the page can show a
+  snackbar instead of breaking.
+- `MainActivity.onPictureInPictureModeChanged()` puts the portrait lock back
+  when the user closes the floating window, restores immersive mode and sends a
+  `floatingWindowChanged` window event that adds the `is-floating` class to the
+  page.
+- The layout reacts to the small window through the `max-height: 420px` media
+  query in `src/styles.css`.
+
+The `android:supportsPictureInPicture="true"` flag in `AndroidManifest.xml` is
+what makes the activity eligible at all.
 
 ## Project layout
 
 ```
 src/                       web app source (this is what ships inside the APK)
-  index.html               full screen app shell, calculator and About sheet
+  index.html               app shell: app bar, menus, calculator, settings sheet
   styles.css               Material 3 dark theme, mobile layout
   manifest.webmanifest     PWA metadata
   js/engine.js             tokenizer, parser, evaluator, calculator state machine
   js/version.js            version parsing, comparison, bumping
   js/update.js             GitHub release lookup
-  js/update-ui.js          About and update sheet state machine
+  js/update-ui.js          update card state machine (inside Settings)
   js/apk-updater.js        bridge to the native ApkUpdater plugin
-  js/native.js             haptics, clipboard, hardware back button
-  js/app.js                rendering, gestures, history, wiring
+  js/floating-window.js    bridge to the native FloatingWindow plugin (PiP)
+  js/native.js             haptics, clipboard, hardware back button, app info
+  js/app.js                rendering, gestures, history, menus, modes, wiring
   icons/                   generated web icons
 www/                       build output bundled into the APK (generated)
 android/
-  app/src/main/java/io/github/jakariatanjim/calcivo/
-    MainActivity.java      immersive full screen shell
+  app/src/main/java/io/github/jakariatanjim/calcs/
+    MainActivity.java      immersive full screen shell + PiP callbacks
     ApkUpdaterPlugin.java  in-app update downloads and installs
+    FloatingWindowPlugin.java  floating window (picture in picture)
   app/src/main/res/        icons, splash screens, themes
 assets/generate-icons.py   draws every icon and splash image
 scripts/build-web.mjs      esbuild bundler -> www/ plus build metadata
@@ -232,7 +273,8 @@ npm test
   error handling.
 - `tests/update-ui.test.mjs` - the update flow with a fake native bridge.
 - `tests/ui.test.mjs` - jsdom smoke test of the production bundle: preview,
-  history, sheets, keyboard, update badge.
+  history, the three dot menu, the mode chip, the settings sheet with the about
+  and privacy pages, keyboard input and the update badge.
 
 ## Icons
 
