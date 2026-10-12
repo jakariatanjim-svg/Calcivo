@@ -68,11 +68,29 @@ android {
     }
     buildTypes {
         developer {
-            // Development APK: unsigned by the developer key so it is quick to
-            // install during testing.  Produced by the "developer" workflow input.
+            // Development APK, produced by the "developer" workflow input: a
+            // plain, debuggable build that installs straight on a phone.
+            //
+            // `matchingFallbacks` is what makes this custom build type work at
+            // all. The Capacitor modules only ship the standard `debug` and
+            // `release` variants, so the app has to say which one its own build
+            // type stands for. Without it Gradle stops with
+            //   "No matching variant of project :capacitor-android was found"
+            // because it cannot pick a variant of the libraries to link against.
+            matchingFallbacks = ['debug']
+
+            // Signed with the debug key on purpose: Android refuses to install
+            // an unsigned APK, and a build type without a signing config is also
+            // written as `app-developer-unsigned.apk`, which the build scripts
+            // and the workflow collect as `app-developer.apk`.
+            debuggable true
+            signingConfig signingConfigs.debug
             minifyEnabled false
         }
         release {
+            // Standard build type - the libraries resolve through their own
+            // `release` variant, which is the default match.
+            matchingFallbacks = ['release']
             minifyEnabled false
             shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'

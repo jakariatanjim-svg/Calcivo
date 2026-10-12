@@ -83,7 +83,25 @@ npx cap sync android
 )
 
 mkdir -p dist
-cp "android/app/build/outputs/apk/${VARIANT}/app-${VARIANT}.apk" "dist/${APK_FILE}"
+
+# The APK is normally named app-<variant>.apk. A build type without a signing
+# config would be written as app-<variant>-unsigned.apk instead, so the folder
+# is searched as a fallback and a missing APK fails with a readable message
+# rather than a bare `cp: cannot stat`.
+APK_DIR="android/app/build/outputs/apk/${VARIANT}"
+APK_SOURCE="${APK_DIR}/app-${VARIANT}.apk"
+
+if [ ! -f "$APK_SOURCE" ]; then
+  APK_SOURCE="$(find "$APK_DIR" -maxdepth 1 -name '*.apk' -type f -print -quit 2>/dev/null || true)"
+fi
+
+if [ -z "$APK_SOURCE" ] || [ ! -f "$APK_SOURCE" ]; then
+  ls -la "$APK_DIR" 2>/dev/null || true
+  fail "Gradle did not produce an APK in ${APK_DIR}."
+fi
+
+printf 'Using %s\n' "$APK_SOURCE"
+cp "$APK_SOURCE" "dist/${APK_FILE}"
 
 if command -v sha256sum >/dev/null 2>&1; then
   (cd dist && sha256sum "$APK_FILE" > "${APK_FILE}.sha256")

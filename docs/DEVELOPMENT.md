@@ -36,6 +36,28 @@ Output: `dist/Calcivo_<version>_<variant>.apk` plus a `.sha256` file.
 Without a keystore the release APK is signed with the debug key, so it still
 installs on any device (it is not suitable for a store listing).
 
+### Build variants
+
+| Variant | Gradle task | Signing | Purpose |
+| --- | --- | --- | --- |
+| `developer` | `assembleDeveloper` | debug key, `debuggable true` | testing on a phone; CI keeps it as a workflow artifact |
+| `release` | `assembleRelease` | release keystore, otherwise the debug key | GitHub release and in-app updates |
+
+`developer` is a custom build type - Android only knows `debug` and `release` out
+of the box - so `android/app/build.gradle` declares
+`matchingFallbacks = ['debug']` for it. The Capacitor modules only ship the
+standard `debug` and `release` variants, and without that line Gradle cannot
+decide which of them to link the app against, so the build stops with:
+
+```
+No matching variant of project :capacitor-android was found ...
+```
+
+The developer APK is signed with the debug key on purpose: Android refuses to
+install an unsigned APK, and a build type without a signing config is also
+written as `app-developer-unsigned.apk` instead of `app-developer.apk`, which is
+the file the build scripts and the workflow look for.
+
 Other commands:
 
 ```bash
@@ -89,17 +111,26 @@ runs on demand (`Actions ▸ Build APK ▸ Run workflow`) and does the whole cha
 
 1. `node scripts/version.mjs next --from-tags --write` computes the new version.
 2. Tests run, the web bundle is built and synced into the Android project.
-3. Gradle assembles the APK with that version name and code.
+3. Gradle assembles the APK with that version name and code
+   (`assembleDeveloper` or `assembleRelease`, depending on the `variant` input).
+
+The `variant` input decides what happens to the result:
+
+- **`developer`** (the default) - the APK is uploaded as a workflow artifact
+  only. No tag, no release, no commit: perfect for checking that a build works
+  without publishing anything.
+- **`release`**, or any run with a filled-in *Version override* - additionally
+  follows the steps below.
 4. The build is tagged `v<version>` (for example `v1.4`), and the moving
    `latest` tag is force pushed to the same commit.
-5. A release is created with the title `Calcivo <version> — <date and time>`
-   (for example `Calcivo 1.4 — 12 Oct 2026, 14:30 +06:00`), marked as the latest
+5. A release is created with the title `Calcivo <version>`, marked as the latest
    release, with these assets:
    - `Calcivo_<version>_<variant>.apk` — this build
    - `Calcivo-latest.apk` — a copy with a stable name, used by the in-app updater
    - `Calcivo_<version>_<variant>.apk.sha256` — checksum the app verifies against
-6. `version.json` is committed back to the branch the workflow ran on, so the
-   next run starts one step higher.
+6. `version.json` is committed back and pushed to the branch the workflow ran
+   on, so the next run starts one step higher. A run with a *Version override*
+   skips this, because the version was chosen by hand.
 
 To also build on every push to `main`, uncomment the `push` trigger at the top
 of the workflow.

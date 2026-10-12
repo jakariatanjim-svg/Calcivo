@@ -1,5 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Matches --md-background in src/styles.css -->
+    <!--
+      App background. Matches the md-background token in src/styles.css.
+
+      Note for editors: an XML comment may not contain two hyphens in a row.
+      AAPT2 fails the resource merge with "The string is not permitted within
+      comments", so write CSS custom properties without their leading hyphens
+      (this comment itself avoids the sequence on purpose).
+    -->
     <color name="appBackground">#141218</color>
+
+    <!--
+      Accent colours of the native theme (splash screen, system bars). They
+      mirror the calculator mark and the md-primary token of the web theme.
+      Capacitor's styles.xml refers to all three, so they have to exist or
+      AAPT2 fails the link step with "resource color/colorPrimary not found".
+    -->
+    <color name="colorPrimary">#8B5CFF</color>
+    <color name="colorPrimaryDark">#4322C9</color>
+    <color name="colorAccent">#8B5CFF</color>
 </resources>
