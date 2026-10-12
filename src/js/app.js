@@ -830,7 +830,8 @@ function boot() {
   els.signBtn.addEventListener('click', () => runAction('sign'));
 
   els.modesBtn.addEventListener('click', () => {
-    openPanel('modes');
+    if (openPanelName === 'modes') closePanel('modes');
+    else openPanel('modes');
     keyFeedback();
   });
   els.modeGrid.addEventListener('click', (event) => {
