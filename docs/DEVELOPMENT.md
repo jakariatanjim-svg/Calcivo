@@ -16,7 +16,7 @@ End users only need the [README](../README.md).
 
 ```bash
 npm install
-npm run apk            # debug APK
+npm run apk            # developer APK
 npm run apk:release    # release APK (release signed when a keystore is configured)
 ```
 
@@ -24,7 +24,7 @@ Output: `dist/Calcivo_<version>_<variant>.apk` plus a `.sha256` file.
 
 | Environment variable | Default | Meaning |
 | --- | --- | --- |
-| `BUILD_VARIANT` | `debug` | `debug` or `release` |
+| `BUILD_VARIANT` | `developer` | `developer` or `release` |
 | `VERSION_NAME` | next version | explicit version, skips the bump |
 | `VERSION_CODE` | derived | numeric Android version code |
 | `WRITE_VERSION` | `0` | `1` stores the new version in `version.json` |

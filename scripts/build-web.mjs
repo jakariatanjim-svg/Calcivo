@@ -10,7 +10,7 @@
  *
  *   BUILD_VERSION     overrides the version from version.json (CI passes the
  *                     version computed by scripts/version.mjs)
- *   BUILD_VARIANT     debug | release
+ *   BUILD_VARIANT     developer | release
  *   BUILD_COMMIT      short git sha
  *   BUILD_TIME        ISO timestamp of the build
  *   GITHUB_REPOSITORY owner/repo, used by the in-app updater

@@ -19,8 +19,8 @@ const release = (overrides = {}) => ({
   body: '## Calcivo 1.4\n\n- live preview chip\n- in-app updates\n',
   assets: [
     { name: 'Calcivo-latest.apk', browser_download_url: 'https://example.com/latest.apk', size: 5200000 },
-    { name: 'Calcivo_1.4_debug.apk', browser_download_url: 'https://example.com/1.4.apk', size: 5200000 },
-    { name: 'Calcivo_1.4_debug.apk.sha256', browser_download_url: 'https://example.com/1.4.apk.sha256', size: 90 },
+    { name: 'Calcivo_1.4_developer.apk', browser_download_url: 'https://example.com/1.4.apk', size: 5200000 },
+    { name: 'Calcivo_1.4_developer.apk.sha256', browser_download_url: 'https://example.com/1.4.apk.sha256', size: 90 },
   ],
   ...overrides,
 });
@@ -75,7 +75,7 @@ test('summarizeNotes flattens markdown for the update card', () => {
 
 test('checksumMatches compares the sha lines written by sha256sum', () => {
   const hash = 'a'.repeat(64);
-  assert.equal(checksumMatches(`${hash}  Calcivo_1.4_debug.apk`, hash), true);
+  assert.equal(checksumMatches(`${hash}  Calcivo_1.4_developer.apk`, hash), true);
   assert.equal(checksumMatches(`${hash.toUpperCase()}  file.apk`, hash), true);
   assert.equal(checksumMatches('b'.repeat(64), hash), false);
   assert.equal(checksumMatches(null, hash), false);

@@ -77,7 +77,7 @@ before(async () => {
   const versionInfo = {
     name: 'Calcivo',
     version: '1.2',
-    variant: 'debug',
+    variant: 'developer',
     commit: 'abc1234',
     builtAt: '2026-10-12T09:30:00Z',
     repository: 'jakariatanjim-svg/test',
