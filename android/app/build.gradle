@@ -67,6 +67,11 @@ android {
         }
     }
     buildTypes {
+        developer {
+            // Development APK: unsigned by the developer key so it is quick to
+            // install during testing.  Produced by the "developer" workflow input.
+            minifyEnabled false
+        }
         release {
             minifyEnabled false
             shrinkResources false

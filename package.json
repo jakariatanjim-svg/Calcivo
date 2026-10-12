@@ -11,7 +11,7 @@
     "sync": "npm run build:web && cap sync android",
     "test": "npm run build:web && node --test",
     "apk": "bash scripts/build-apk.sh",
-    "apk:debug": "BUILD_VARIANT=debug bash scripts/build-apk.sh",
+    "apk:developer": "BUILD_VARIANT=developer bash scripts/build-apk.sh",
     "apk:release": "BUILD_VARIANT=release bash scripts/build-apk.sh",
     "icons": "python3 assets/generate-icons.py",
     "android:open": "cap open android",

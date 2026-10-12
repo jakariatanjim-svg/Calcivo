@@ -2,7 +2,7 @@
 #
 # Builds an installable Calcivo APK on this machine.
 #
-#   npm run apk              debug APK
+#   npm run apk              developer APK
 #   npm run apk:release      release APK (release signed when a keystore is set)
 #
 # The version is read from version.json and every build takes the next one in
@@ -10,7 +10,7 @@
 # GitHub Actions runs the same script and also commits the new version back.
 #
 # Environment overrides:
-#   BUILD_VARIANT     debug | release          (default: debug)
+#   BUILD_VARIANT     developer | release      (default: developer)
 #   VERSION_NAME      explicit version         (default: next version)
 #   VERSION_CODE      numeric version code     (default: derived from the version)
 #   WRITE_VERSION     1 to store the new version in version.json
@@ -38,11 +38,11 @@ if [ -z "${ANDROID_HOME:-}" ] && [ -z "${ANDROID_SDK_ROOT:-}" ]; then
   fail "ANDROID_HOME / ANDROID_SDK_ROOT is not set. Install the Android command line tools and set ANDROID_HOME."
 fi
 
-VARIANT="${BUILD_VARIANT:-debug}"
+VARIANT="${BUILD_VARIANT:-developer}"
 case "$VARIANT" in
-  debug) TASK="assembleDebug" ;;
+  developer) TASK="assembleDeveloper" ;;
   release) TASK="assembleRelease" ;;
-  *) fail "Unknown BUILD_VARIANT '${VARIANT}' (expected debug or release)." ;;
+  *) fail "Unknown BUILD_VARIANT '${VARIANT}' (expected developer or release)." ;;
 esac
 
 [ -d node_modules ] || npm ci

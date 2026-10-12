@@ -4,23 +4,28 @@ name: Build APK
 #
 # Every run:
 #   1. bumps the version (1.0 -> 1.1 -> ... -> 1.9 -> 2.0) from version.json
+#      (unless "Version override" is filled in, in which case that version is used)
 #   2. builds the web bundle, syncs it into the Android project and builds the APK
-#   3. tags that build v<version>, refreshes the `latest` tag
-#   4. creates a release titled "Calcivo <version>" with the APK
-#      inside, tagged as the latest release so in-app updates can find it
-#   5. commits the new version back to the branch it was run from
+#   3. for the "release" variant: tags that build v<version>, creates a GitHub
+#      release with the APK, and commits the new version back
+#   4. for the "developer" variant: uploads the APK as a workflow artifact only
 #
 # Uncomment the push trigger below to also build on every push to main.
 on:
   workflow_dispatch:
     inputs:
       variant:
-        description: "APK variant"
+        description: "APK variant – 'release' publishes to GitHub Releases; 'developer' keeps the APK as a workflow artifact"
         type: choice
         options:
-          - debug
+          - developer
           - release
-        default: debug
+        default: developer
+      version_override:
+        description: "Version override – leave empty (or 0) for automatic versioning from version.json. Enter a version like 2.5 to force that version and create a release with it."
+        type: string
+        default: ""
+        required: false
   # push:
   #   branches: [main]
 
@@ -46,6 +51,7 @@ jobs:
       human: ${{ steps.version.outputs.human }}
       apk_name: ${{ steps.version.outputs.apk_name }}
       variant: ${{ steps.version.outputs.variant }}
+      is_release: ${{ steps.version.outputs.is_release }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -64,18 +70,38 @@ jobs:
       - name: Determine the next version
         id: version
         env:
-          VARIANT: ${{ inputs.variant || 'debug' }}
+          VARIANT: ${{ inputs.variant || 'developer' }}
+          VERSION_OVERRIDE: ${{ inputs.version_override || '' }}
         run: |
           set -euo pipefail
 
-          # version.json holds the last released version; continue one step above
-          # the highest version found there or in the release tags.
-          VERSION="$(node scripts/version.mjs next --from-tags --write)"
+          OVERRIDE="${VERSION_OVERRIDE}"
+          IS_RELEASE="false"
+          AUTO_VERSION="true"
+
+          # Treat empty, zero and 0.0 as "no override"
+          case "$OVERRIDE" in
+            ""|"0"|"0.0")
+              # Automatic versioning from version.json + tags
+              VERSION="$(node scripts/version.mjs next --from-tags --write)"
+              ;;
+            *)
+              # User provided an explicit version
+              VERSION="$OVERRIDE"
+              AUTO_VERSION="false"
+              ;;
+          esac
+
           VERSION_CODE="$(node scripts/version.mjs code "${VERSION}")"
           TAG="v${VERSION}"
           HUMAN="$(TZ="${BUILD_TIMEZONE:-Asia/Dhaka}" date +'%d %b %Y, %H:%M %Z')"
           ISO="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           SHORT_SHA="${GITHUB_SHA:0:7}"
+
+          # Release variant (or any forced version) always creates a GitHub release
+          if [ "${VARIANT}" = "release" ] || [ "${AUTO_VERSION}" = "false" ]; then
+            IS_RELEASE="true"
+          fi
 
           {
             echo "version=${VERSION}"
@@ -85,6 +111,8 @@ jobs:
             echo "iso=${ISO}"
             echo "short_sha=${SHORT_SHA}"
             echo "variant=${VARIANT}"
+            echo "is_release=${IS_RELEASE}"
+            echo "auto_version=${AUTO_VERSION}"
             echo "title=Calcivo ${VERSION}"
             echo "apk_name=Calcivo_${VERSION}_${VARIANT}.apk"
           } >> "$GITHUB_OUTPUT"
@@ -99,6 +127,9 @@ jobs:
             echo "| tag | \`${TAG}\` |"
             echo "| variant | \`${VARIANT}\` |"
             echo "| commit | \`${SHORT_SHA}\` |"
+            if [ "${AUTO_VERSION}" = "false" ]; then
+              echo "| version override | \`${OVERRIDE}\` |"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
           cat version.json
@@ -223,6 +254,7 @@ jobs:
   release:
     name: Publish release
     needs: build
+    if: needs.build.outputs.is_release == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -325,10 +357,17 @@ jobs:
       - name: Commit the new version
         env:
           VERSION: ${{ needs.build.outputs.version }}
+          AUTO_VERSION: ${{ needs.build.outputs.auto_version }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Only auto-commit version.json when the version was computed automatically
+          if [ "${AUTO_VERSION}" != "true" ]; then
+            echo "Version was overridden — skipping version.json commit"
+            exit 0
+          fi
 
           CURRENT="$(node -e "console.log(require('./version.json').version)")"
           if [ "$CURRENT" = "${VERSION}" ]; then
